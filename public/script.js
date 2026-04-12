@@ -194,6 +194,65 @@ function generateAdvice(spent, budget, categories) {
     adviceText.innerText = advice;
 }
 
+// --- Theme Management ---
+
+function applyTextStyles(color) {
+    document.body.style.color = color;
+    document.querySelectorAll('.day-info, .expense-desc, h2, h3, label').forEach(el => {
+        el.style.color = color;
+    });
+}
+
+function changeTextColor(color) {
+    applyTextStyles(color);
+    localStorage.setItem('pref-text-color', color);
+}
+
+function changeBg(type, value) {
+    if (!value) return;
+
+    if (type === 'color') {
+        document.body.style.backgroundImage = 'none';
+        document.body.style.backgroundColor = value;
+        document.body.classList.remove('has-bg-img', 'has-wallpaper');
+    } else if (type === 'image') {
+        // This is for small repeating patterns
+        document.body.style.backgroundImage = `url('${value}')`;
+        document.body.style.backgroundSize = 'auto'; 
+        document.body.classList.add('has-bg-img');
+        document.body.classList.remove('has-wallpaper');
+    } else if (type === 'wallpaper') {
+        // This is for full-screen mobile wallpapers
+        document.body.style.backgroundImage = `url('${value}')`;
+        document.body.classList.add('has-wallpaper');
+        document.body.classList.remove('has-bg-img');
+    }
+    
+    localStorage.setItem('pref-bg-type', type);
+    localStorage.setItem('pref-bg-value', value);
+}
+
+function applySavedTheme() {
+    const textColor = localStorage.getItem('pref-text-color');
+    const bgType = localStorage.getItem('pref-bg-type');
+    const bgValue = localStorage.getItem('pref-bg-value');
+
+    if (textColor) {
+        applyTextStyles(textColor);
+        if(document.getElementById('customTextColor')) {
+            document.getElementById('customTextColor').value = textColor;
+        }
+    }
+    
+    if (bgType === 'color' && bgValue) {
+        changeBg('color', bgValue);
+        if(document.getElementById('customBgColor')) {
+            document.getElementById('customBgColor').value = bgValue;
+        }
+    } else if (bgType === 'image' && bgValue) {
+        changeBg('image', bgValue);
+    }
+}
 // --- Special Events Logic ---
 
 function openSpecialModal(eventId, eventTitle) {
