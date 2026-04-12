@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+body {
+    background-color: #f0f0f0;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; margin: 0;
+}
+
+.container {
+    background-color: #fff;
+    width: 100%; height: 100%;
+    max-width: 400px; max-height: 800px;
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+@media (min-width: 768px) { .container { border-radius: 30px; } }
+
+@keyframes textPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+}
+.header {
+    /* Choose one gradient from above */
+    background: linear-gradient(rgba(18, 18, 18, 0.85), rgba(184, 115, 51, 0.4)), 
+            url('https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=1000');
+    background-size: cover;
+    background-position: center;
+    height: 35%;
+    display: flex; 
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+    color: white;
+    border-bottom-left-radius: 80% 20%;
+    border-bottom-right-radius: 80% 20%;
+    
+    /* Adds a slight blur to the background image for better text clarity */
+    backdrop-filter: blur(2px); 
+    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+.header h1 {
+    font-size: 38px; /* Adjusted for longer text */
+    font-weight: 700;
+    margin: 0;
+    /* This triggers the animation */
+    animation: textPop 0.8s ease-out forwards;
+}
+
+.header p {
+    font-size: 14px;
+    opacity: 0.95;
+    font-weight: 500;
+    /* Delayed fade-in for the subtitle */
+    animation: textPop 1s ease-out forwards;
+    animation-delay: 0.3s;
+    opacity: 0; /* Starts hidden */
+}
+
+/* Sliding Toggle */
+.toggle-wrapper {
+    display: flex; justify-content: center;
+    margin-top: -25px; z-index: 10;
+}
+
+.toggle-bg {
+    background: white; width: 240px; height: 50px;
+    border-radius: 25px; display: flex; position: relative;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.toggle-btn {
+    flex: 1; border: none; background: transparent;
+    z-index: 2; cursor: pointer; font-weight: 600; color: #72a2ff;
+}
+
+.toggle-btn.active { color: white; transition: 0.3s; }
+
+.toggle-slider {
+    position: absolute; width: 50%; height: 100%;
+    background: #72a2ff; border-radius: 25px;
+    transition: transform 0.3s ease;
+}
+
+/* Forms Slider - This makes the Sign Up visible! */
+.forms-window { width: 100%; overflow: hidden; flex: 1; margin-top: 20px; }
+.forms-track {
+    display: flex; width: 200%; height: 100%;
+    transition: transform 0.4s ease-in-out;
+}
+
+.form-content { width: 50%; padding: 20px 40px; }
+
+input {
+    width: 100%; padding: 15px; margin: 8px 0;
+    background: #f1f5ff; border: none; border-radius: 15px;
+    outline: none;
+}
+
+.main-btn {
+    width: 100%; padding: 15px; margin-top: 15px;
+    background: #72a2ff; color: white; border: none;
+    border-radius: 15px; font-weight: 700; cursor: pointer;
+}
+
+/* Social Icons */
+.social-section { text-align: center; padding-bottom: 20px; }
+.social-icons { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
+.social-icons a {
+    width: 40px; height: 40px; border-radius: 50%; border: 1px solid #ddd;
+    display: flex; align-items: center; justify-content: center; text-decoration: none;
+}
+.google-btn i { color: #ea4335; }
+.footer-links { font-size: 11px; color: #aaa; margin-top: 15px; }</style>
+</head>
+<body>
+    <div class="container" id="container">
+        <div class="header">
+           <h1>Spend Smart</h1>
+           <p>Master your finances, one day at a time.</p>
+         </div>
+
+        <div class="toggle-wrapper">
+            <div class="toggle-bg">
+                <div class="toggle-slider"></div>
+                <button id="loginToggle" class="toggle-btn active">Log In</button>
+                <button id="registerToggle" class="toggle-btn">Sign Up</button>
+            </div>
+        </div>
+
+        <div class="forms-window">
+            <div class="forms-track" id="formsTrack">
+                <div class="form-content">
+                    <form id="loginForm">
+                      <input type="text" id="loginIdentifier" placeholder="Username or Email" required>
+                        <input type="password" id="loginPass" placeholder="Password" required>
+                        <button type="submit" class="main-btn">Log In</button>
+                    </form>
+                </div>
+
+                <div class="form-content">
+                    <form id="registerForm">
+                        <input type="text" id="regName" placeholder="Full Name" required>
+                        <input type="email" id="regEmail" placeholder="Email" required>
+                        <input type="password" id="regPass" placeholder="Password" required>
+                        <button type="submit" class="main-btn">Sign Up</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="social-section">
+            <p>or</p>
+            <div class="social-icons">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="google-btn"><i class="fab fa-google"></i></a>
+            </div>
+            <div class="footer-links">
+                <p>Privacy policy • Term of service</p>
+            </div>
+        </div>
+    </div>
+ <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+const formsTrack = document.getElementById('formsTrack');
+const loginToggle = document.getElementById('loginToggle');
+const registerToggle = document.getElementById('registerToggle');
+const slider = document.querySelector('.toggle-slider');
+
+// --- Animation Logic ---
+registerToggle.addEventListener('click', () => {
+    formsTrack.style.transform = 'translateX(-50%)';
+    slider.style.transform = 'translateX(100%)';
+    registerToggle.classList.add('active');
+    loginToggle.classList.remove('active');
+});
+
+loginToggle.addEventListener('click', () => {
+    formsTrack.style.transform = 'translateX(0%)';
+    slider.style.transform = 'translateX(0%)';
+    loginToggle.classList.add('active');
+    registerToggle.classList.remove('active');
+});
+
+// --- Database Logic ---
+const SERVER_URL = "http://localhost:4000";
+
+// Reusable function for form submission (e.g., Registration)
+async function handleFormSubmit(e, endpoint, payload) {
+    e.preventDefault();
+    try {
+        const response = await fetch(`${SERVER_URL}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        // Check if the server responded with a success status (200-299)
+        if (response.ok) {
+            const data = await response.text();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: data,
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            // If server responds with 400 or 500 status (e.g., Email already exists)
+            const errorText = await response.text();
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Registration Failed',
+                text: errorText,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Try Again'
+            });
+        }
+
+    } catch (error) {
+        console.error("Connection Error:", error);
+        
+        // Handles network errors (server down, no internet)
+        Swal.fire({
+            icon: 'error',
+            title: 'Connection Failed',
+            text: 'Server error: Make sure your server.js is running!',
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Understood'
+        });
+    }
+}
+
+// --- Event Listeners ---
+document.getElementById('registerForm').addEventListener('submit', (e) => {
+    const payload = {
+        username: document.getElementById('regName').value,
+        email: document.getElementById('regEmail').value,
+        password: document.getElementById('regPass').value
+    };
+    handleFormSubmit(e, '/user/register', payload); 
+});
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const identifier = document.getElementById('loginIdentifier').value;
+    const password = document.getElementById('loginPass').value;
+
+    try {
+        const response = await fetch(`${SERVER_URL}/user/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifier, password })
+        });
+        
+        if (response.ok) {
+            const data = await response.json(); 
+            
+            // Save to localStorage so home.html can read it
+            localStorage.setItem("username", data.username);
+            localStorage.setItem("user_id", data.user_id); 
+            localStorage.setItem("isLoggedIn", "true");
+
+            // Optional: Show a quick success popup before redirecting
+            Swal.fire({
+                icon: 'success',
+                title: 'Login Successful!',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => {
+                window.location.href = "index.html"; // Redirect
+            });
+            
+        } else {
+            const errorText = await response.text();
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: errorText,
+                confirmButtonColor: '#d33', 
+                confirmButtonText: 'Close'
+            });
+        }
+    } catch (error) {
+        console.error("Connection Error:", error);
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Connection Failed',
+            text: 'Server error: Make sure your server.js is running!',
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Understood'
+        });
+    }
+});
+</script>
+</body>
+</html>

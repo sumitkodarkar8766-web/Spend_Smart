@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spend Smart</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <nav class="top-nav">
+            <button class="nav-item active" onclick="showSection('home')">Home</button>
+            <button class="nav-item" onclick="showSection('analysis')">Analysis</button>
+            <button class="nav-item" onclick="showSection('other')">Other</button>
+            <button class="nav-item" onclick="showSection('reminders')">Reminders</button>
+            <button class="nav-item profile-trigger" onclick="toggleProfileMenu()">
+                <i class="fas fa-user-circle"></i>
+            </button>
+        </nav>
+
+        <div id="profileMenu" class="profile-dropdown hidden">
+            <div class="profile-header">
+                <i class="fas fa-user-astronaut"></i>
+                <p id="displayUsername">Guest User</p>
+                <span> Active account </span>
+            </div>
+            <hr>
+            <div class="profile-actions">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <header id="home-header">
+            <div class="header-left">
+                <div class="month-selector">
+                    <input type="month" id="monthPicker" value="2026-04">
+                </div>
+                <div class="total-display">
+                    <span id="headerMonthName">April 2026</span>
+                    <h2 id="totalAmount">₹0</h2>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="theme-trigger-btn" onclick="openThemeModal()" title="Change Theme">
+                    <i class="fas fa-palette"></i>
+                </button>
+            </div>
+        </header>
+
+        <main id="main-content">
+            <section id="home-section">
+                <div id="calendarList"></div>
+            </section>
+
+            <section id="analysis-section" class="hidden">
+                <div class="section-card budget-card">
+                    <h3><i class="fas fa-wallet"></i> Monthly Budget</h3>
+                    <div class="budget-input-area" style="display: flex; gap: 10px; margin: 15px 0;">
+                        <input type="number" id="budgetAmount" placeholder="Set Budget (₹)" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334444; background: #0f1717; color: white;">
+                        <button onclick="updateBudget()" class="save-btn" style="width: auto; padding: 0 20px;">Set</button>
+                    </div>
+                    <div class="budget-progress-container" style="background: #0f1717; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
+                        <div id="budgetBar" class="progress-bar" style="width: 0%; height: 100%; background: #4db6ac; transition: width 0.5s ease;"></div>
+                    </div>
+                    <p id="budgetText" style="font-size: 0.85rem; color: #889999;">Set a budget to track progress</p>
+                </div>
+
+                <div class="section-card">
+                    <h3><i class="fas fa-chart-line"></i> Spending Stats</h3>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span>Highest Daily</span>
+                            <b id="highestDailyText">₹0</b>
+                        </div>
+                        <div class="stat-item">
+                            <span>Daily Average</span>
+                            <b id="dailyAvgText">₹0</b>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3><i class="fas fa-calendar-week"></i> Weekly Spends</h3>
+                    <div style="height: 250px; width: 100%;">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3><i class="fas fa-chart-pie"></i> Category Distribution</h3>
+                    <div style="height: 250px; width: 100%; display: flex; justify-content: center;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="savingsAdvice" class="section-card advice-card hidden" style="border-left: 4px solid #ffdb58;">
+                    <h3><i class="fas fa-lightbulb"></i> Smart Advice</h3>
+                    <p id="adviceText" style="font-size: 0.9rem; line-height: 1.4;"></p>
+                </div>
+            </section>
+
+            <section id="other-section" class="hidden">
+                <div class="section-card">
+                    <h3><i class="fas fa-star"></i> Create Special Event</h3>
+                    <p class="section-hint">Log a trip, party, or project to track separately.</p>
+                    <div class="budget-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                        <input type="text" id="eventTitle" placeholder="Event Title" style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white;">
+                        <input type="date" id="eventDate" style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white;">
+                        <button onclick="createSpecialEvent()" class="save-btn">Create Event</button>
+                    </div>
+                </div>
+
+                <div id="specialEventsContainer"></div>
+            </section>
+        </main>
+        <section id="reminders-section" class="hidden">
+    <div class="section-card">
+        <h3><i class="fas fa-bell"></i> Set Expense Reminder</h3>
+        <p class="section-hint">Get notified to log your daily spends. You can set multiple reminders per day.</p>
+        
+        <div class="budget-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+            <label>Reminder Time</label>
+            <input type="time" id="reminderTime" style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
+            
+            <label>Message</label>
+            <input type="text" id="reminderMsg" placeholder="e.g., Add your reminder message" style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
+            
+            <button onclick="saveReminder()" class="save-btn">Add Reminder</button>
+        </div>
+    </div>
+
+    <div id="reminderListContainer">
+        </div>
+</section>
+    </div>
+
+    <div id="specialExpenseModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3 id="specialModalTitle">Add to Event</h3>
+        <p id="specialEventNameLabel"></p>
+        <input type="text" id="specialDesc" placeholder="Spend Description">
+        <input type="number" id="specialAmt" placeholder="Amount">
+        
+        <input type="hidden" id="activeEventId"> 
+
+        <div class="modal-actions">
+            <button class="cancel-btn" onclick="closeSpecialModal()">Cancel</button>
+            <button class="save-btn" onclick="saveSpecialExpense()">Save Spend</button>
+        </div>
+    </div>
+</div>
+
+    <div id="themeModal" class="modal-overlay hidden">
+        <div class="modal-content theme-modal-content">
+            <h3><i class="fas fa-paint-brush"></i> Customize Appearance</h3>
+            <label>Text Color</label>
+            <div class="theme-grid">
+                <button class="theme-dot" style="background: #ffffff;" onclick="changeTextColor('#ffffff')"></button>
+                <button class="theme-dot" style="background: #4db6ac;" onclick="changeTextColor('#4db6ac')"></button>
+                <button class="theme-dot" style="background: #ffdb58;" onclick="changeTextColor('#ffdb58')"></button>
+                <button class="theme-dot" style="background: #ff5252;" onclick="changeTextColor('#ff5252')"></button>
+                <button class="theme-dot" style="background: #a29bfe;" onclick="changeTextColor('#a29bfe')"></button>
+                <button class="theme-dot" style="background: #fab1a0;" onclick="changeTextColor('#fab1a0')"></button>
+            </div>
+            
+            <label>Background Color</label>
+            <div class="theme-grid">
+                <button class="theme-opt" style="background: #0f1717;" onclick="changeBg('color', '#0f1717')"></button>
+                <button class="theme-opt" style="background: #1a2626;" onclick="changeBg('color', '#1a2626')"></button>
+                <button class="theme-opt" style="background: #2d1b2d;" onclick="changeBg('color', '#2d1b2d')"></button>
+                <button class="theme-opt" style="background: #000000;" onclick="changeBg('color', '#000000')"></button>
+            </div>
+
+            <label>Mobile Wallpapers</label>
+            <div class="theme-grid">
+                <button class="theme-opt img-bg" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=100');" onclick="changeBg('wallpaper', 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1080')"></button>
+                <button class="theme-opt img-bg" style="background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=100');" onclick="changeBg('wallpaper', 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1080')"></button>
+            </div>
+
+            <div class="modal-actions">
+                <button class="save-btn" onclick="closeThemeModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="modalTitle">Add Expense</h3>
+            <p id="selectedDateLabel"></p>
+
+            <label>Description</label>
+            <input type="text" id="desc" list="recentDescriptions" placeholder="e.g. Food, Petrol, Books">
+            <datalist id="recentDescriptions"></datalist>
+
+            <label>Amount (₹)</label>
+            <input type="number" id="amt" placeholder="0.00">
+
+            <label>Category</label>
+            <select id="cat">
+                <option value="General">General</option>
+                <option value="Food">Food</option>
+                <option value="Trip">Trip</option>
+                <option value="Event">Event</option>
+                <option value="Stationery">Stationery</option>
+            </select>
+
+            <div class="modal-actions">
+                <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+                <button class="save-btn" onclick="saveExpense()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

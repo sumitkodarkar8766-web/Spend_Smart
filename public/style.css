@@ -1,0 +1,729 @@
+:root {
+    /* Updated Professional Default Palette */
+    --bg-color: #0f172a;        /* Deep Navy/Slate background */
+    --card-bg: rgba(30, 41, 59, 0.7); /* Translucent Slate */
+    --text-primary: #f8fafc;    /* Clean off-white text */
+    --accent: #10b981;          /* Professional Emerald Green */
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    margin: 0;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+/* Fix calendar + time picker icon visibility */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);   /* makes icon white */
+    cursor: pointer;
+}
+
+.app-container {
+    padding: 15px;
+    max-width: 500px;
+    margin: auto;
+}
+
+/* --- Navigation --- */
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    background: var(--card-bg);
+    padding: 8px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: #94a3b8; /* Muted slate for inactive tabs */
+    font-weight: 600;
+    padding: 10px;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.nav-item.active {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+}
+
+/* --- Header Layout --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 25px;
+}
+
+.header-left {
+    text-align: left;
+}
+
+.theme-trigger-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--accent);
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.theme-trigger-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(15deg);
+}
+
+input[type="month"] {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: white;
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.total-display h2 {
+    font-size: 2.5rem;
+    margin: 5px 0;
+    color: var(--accent);
+}
+
+/* --- Daily Grouping --- */
+.day-group {
+    margin-bottom: 25px;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 15px;
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.day-info {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #f8fafc;
+}
+
+.day-info span {
+    display: block;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.add-day-btn {
+    background: none;
+    border: 1px dashed var(--accent);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.expense-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 1rem;
+}
+
+.expense-desc {
+    color: #cbd5e1;
+}
+
+.expense-amt {
+    font-weight: bold;
+    border-bottom: 1px solid #334155;
+    min-width: 50px;
+    text-align: right;
+    color: #f8fafc;
+}
+
+/* --- Modals --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(2, 6, 23, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    background: #1e293b; /* Solid slate for better readability */
+    padding: 25px;
+    border-radius: 20px;
+    width: 85%;
+    max-width: 380px;
+    border: 1px solid #334155;
+}
+
+.modal-content label {
+    display: block;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.modal-content input,
+.modal-content select {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: white;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+.save-btn {
+    flex: 1;
+    background: var(--accent);
+    border: none;
+    padding: 12px;
+    color: white;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    flex: 1;
+    background: #334155;
+    border: none;
+    padding: 12px;
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* --- Theme Specific Modal Grid --- */
+.theme-grid {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.theme-dot,
+.theme-opt {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid #334155;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+    padding: 0;
+}
+
+.theme-opt.img-bg {
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+}
+
+.theme-dot:hover,
+.theme-opt:hover {
+    transform: scale(1.15);
+    border-color: var(--accent);
+}
+
+/* --- Utilities --- */
+.hidden {
+    display: none !important;
+}
+
+body.has-bg-img {
+    background-attachment: fixed;
+    background-repeat: repeat;
+}
+
+/* --- Profile Dropdown --- */
+.profile-dropdown {
+    position: absolute;
+    right: 15px;
+    top: 70px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    min-width: 180px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.profile-header i {
+    font-size: 2rem;
+    color: var(--accent);
+    margin-bottom: 10px;
+}
+
+.logout-btn {
+    background: #ef4444; /* Clean professional red */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* --- Sections & Cards --- */
+.section-card {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 20px;
+    margin-top: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.stat-item {
+    background: #0f172a;
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #1e293b;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #64748b;
+}
+
+.custom-picker {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1e293b;
+}
+
+.custom-picker input[type="color"] {
+    position: absolute;
+    width: 150%;
+    height: 150%;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    background: none;
+}
+
+.custom-picker i {
+    pointer-events: none;
+    font-size: 0.8rem;
+    color: white;
+    z-index: 1;
+}
+
+/* Ensure the wallpaper fits the mobile screen perfectly */
+body.has-wallpaper {
+    background-size: cover !important;
+    background-position: center !important;
+    background-attachment: fixed !important;
+    background-repeat: no-repeat !important;
+}
+
+/* Style for the "Paste Link" box */
+.custom-url-box {
+    width: 100%;
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.custom-url-box input {
+    flex: 1;
+    font-size: 0.8rem !important;
+    padding: 8px !important;
+}
+
+.custom-url-box button {
+    background: var(--accent);
+    border: none;
+    color: white;
+    padding: 0 15px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* --- Analysis Tab Enhanced Styles --- */
+#analysis-section {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Glassmorphism Cards */
+.section-card {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.section-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Budget Card Specifics */
+.budget-card {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(0, 0, 0, 0.2));
+    border-left: 5px solid var(--accent);
+}
+
+.budget-progress-container {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #10b981, #34d399) !important;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+/* Stat Grid Improvements */
+.stat-item {
+    background: rgba(15, 23, 42, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--accent);
+    opacity: 0.7;
+}
+
+.stat-item span {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.7rem !important;
+    font-weight: 700;
+    color: #94a3b8;
+}
+
+.stat-item b {
+    font-size: 1.4rem !important;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    color: #f8fafc;
+}
+
+/* Chart Canvas Padding */
+canvas {
+    padding: 10px;
+}
+
+/* Advice Card Sparkle */
+.advice-card {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(0, 0, 0, 0.2)) !important;
+    position: relative;
+    border-left: 4px solid #10b981;
+}
+
+#adviceText {
+    color: #f1f1f1 !important;
+    font-style: italic;
+    position: relative;
+    z-index: 1;
+}
+
+/* "Other" Tab empty state icons */
+.empty-state i {
+    font-size: 3.5rem;
+    background: linear-gradient(to bottom, #10b981, transparent);
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 20px;
+    opacity: 0.6;
+}
+
+/* Button Refinement */
+.save-btn {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: filter 0.2s;
+}
+
+.save-btn:active {
+    filter: brightness(1.2);
+}
+
+/* Styling for disabled buttons and future dates */
+.add-day-btn:disabled {
+    border-color: #334155;
+    color: #475569;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.future-day {
+    opacity: 0.6;
+}
+
+.future-day .day-info {
+    color: #475569 !important;
+}
+:root {
+    /* Professional Default Palette */
+    --bg-color: #0f172a;        
+    --card-bg: rgba(30, 41, 59, 0.7); 
+    --text-primary: #f8fafc;    
+    --accent: #10b981;          
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    margin: 0;
+    transition: background 0.3s ease, color 0.3s ease;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+.app-container {
+    padding: 15px;
+    width: 95%; /* Responsive width */
+    max-width: 500px; /* Limits size on desktop to keep it looking like an app */
+    margin: auto;
+    box-sizing: border-box;
+}
+
+/* --- Navigation Responsive --- */
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    background: var(--card-bg);
+    padding: 8px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-weight: 600;
+    padding: 10px 5px; /* Reduced padding for mobile */
+    cursor: pointer;
+    font-size: 0.85rem; /* Slightly smaller text for small screens */
+    flex: 1; /* Tabs take equal space */
+    text-align: center;
+}
+
+.nav-item.active {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+}
+
+/* --- Header Layout --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    gap: 10px;
+}
+
+.total-display h2 {
+    font-size: clamp(1.8rem, 8vw, 2.5rem); /* Fluid typography */
+    margin: 5px 0;
+    color: var(--accent);
+}
+
+/* --- Daily Grouping --- */
+.day-group {
+    margin-bottom: 25px;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 15px;
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.expense-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 0.95rem;
+    gap: 10px;
+}
+
+.expense-desc {
+    color: #cbd5e1;
+    word-break: break-word; /* Prevents long text from breaking layout */
+    flex: 1;
+}
+
+/* --- Modals Responsive --- */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(2, 6, 23, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 20px;
+    width: 90%; /* Responsive width */
+    max-width: 400px;
+    max-height: 90vh; /* Prevents modal being taller than screen */
+    overflow-y: auto; /* Adds scroll if content is too long */
+    border: 1px solid #334155;
+}
+
+/* --- Stats Grid Responsive --- */
+.stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Default 2 columns */
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* Mobile Tweak for Stats */
+@media (max-width: 360px) {
+    .stat-grid {
+        grid-template-columns: 1fr; /* Stack stats on very small phones */
+    }
+}
+
+/* --- Analysis & Charts --- */
+canvas {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* --- Theme Selection --- */
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* --- Profile Dropdown --- */
+.profile-dropdown {
+    position: absolute;
+    right: 15px;
+    top: 70px;
+    width: calc(100% - 30px); /* Responsive width on mobile */
+    max-width: 250px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+}
+
+/* --- Section Cards --- */
+.section-card {
+    background: var(--card-bg);
+    padding: 15px; /* Slightly reduced for mobile */
+    border-radius: 20px;
+    margin-top: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* --- Tablet/Desktop View Adjustments --- */
+@media (min-width: 768px) {
+    .app-container {
+        padding: 30px;
+    }
+    
+    .nav-item {
+        font-size: 1rem;
+        padding: 12px;
+    }
+}
+
+/* --- Utility --- */
+.hidden {
+    display: none !important;
+}
+
+/* Buttons */
+.save-btn, .cancel-btn {
+    padding: 12px;
+    font-size: 1rem;
+    min-height: 44px; /* Better touch target for mobile */
+}
+

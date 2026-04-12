@@ -1,0 +1,15 @@
+{
+  "name": "Spend Smart",
+  "short_name": "SpendSmart",
+  "start_url": "/login.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
