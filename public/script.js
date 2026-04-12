@@ -1,5 +1,4 @@
 const SERVER_URL = "https://spend-smart-q4z1.onrender.com";
-// REPLACE THIS with your generated Public Key from: npx web-push generate-vapid-keys
 const VAPID_PUBLIC_KEY = "BEG_H6jdabd6m19WgM5G6FSeoI-cTh1c3fWzYsKZDPOsCxCOPBCtTv-YvQOw70c_oj2uTki5Raci0nJnhcxcMQM";
 
 let currentSelectedDate = "";
@@ -31,6 +30,9 @@ async function loadExpenses() {
 
         renderHomeCalendar(data, selectedMonth);
         renderAnalysis(data, budgetData.amount);
+        
+        // Apply theme again after new content is injected into DOM
+        applySavedTheme();
 
     } catch (e) {
         console.error("Connection error:", e);
@@ -91,9 +93,6 @@ function renderHomeCalendar(data, selectedMonth) {
     }
     calendarList.innerHTML = html;
     document.getElementById('totalAmount').innerText = `₹${monthTotal}`;
-
-    const savedColor = localStorage.getItem('pref-text-color');
-    if (savedColor) applyTextStyles(savedColor);
 }
 
 // --- Analysis Logic ---
@@ -197,8 +196,10 @@ function generateAdvice(spent, budget, categories) {
 // --- Theme Management ---
 
 function applyTextStyles(color) {
+    if (!color) return;
     document.body.style.color = color;
-    document.querySelectorAll('.day-info, .expense-desc, h2, h3, label').forEach(el => {
+    // Targets all dynamic and static text containers
+    document.querySelectorAll('.day-info, .expense-desc, h2, h3, label, p, b, span, .nav-item').forEach(el => {
         el.style.color = color;
     });
 }
@@ -214,18 +215,11 @@ function changeBg(type, value) {
     if (type === 'color') {
         document.body.style.backgroundImage = 'none';
         document.body.style.backgroundColor = value;
-        document.body.classList.remove('has-bg-img', 'has-wallpaper');
-    } else if (type === 'image') {
-        // This is for small repeating patterns
+    } else {
         document.body.style.backgroundImage = `url('${value}')`;
-        document.body.style.backgroundSize = 'auto'; 
-        document.body.classList.add('has-bg-img');
-        document.body.classList.remove('has-wallpaper');
-    } else if (type === 'wallpaper') {
-        // This is for full-screen mobile wallpapers
-        document.body.style.backgroundImage = `url('${value}')`;
-        document.body.classList.add('has-wallpaper');
-        document.body.classList.remove('has-bg-img');
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundAttachment = 'fixed';
+        document.body.style.backgroundPosition = 'center';
     }
     
     localStorage.setItem('pref-bg-type', type);
@@ -237,22 +231,10 @@ function applySavedTheme() {
     const bgType = localStorage.getItem('pref-bg-type');
     const bgValue = localStorage.getItem('pref-bg-value');
 
-    if (textColor) {
-        applyTextStyles(textColor);
-        if(document.getElementById('customTextColor')) {
-            document.getElementById('customTextColor').value = textColor;
-        }
-    }
-    
-    if (bgType === 'color' && bgValue) {
-        changeBg('color', bgValue);
-        if(document.getElementById('customBgColor')) {
-            document.getElementById('customBgColor').value = bgValue;
-        }
-    } else if (bgType === 'image' && bgValue) {
-        changeBg('image', bgValue);
-    }
+    if (textColor) applyTextStyles(textColor);
+    if (bgType && bgValue) changeBg(bgType, bgValue);
 }
+
 // --- Special Events Logic ---
 
 function openSpecialModal(eventId, eventTitle) {
@@ -273,7 +255,12 @@ async function saveSpecialExpense() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ event_id, description, amount })
     });
-    if (res.ok) { closeSpecialModal(); loadSpecialEvents(); }
+    if (res.ok) { 
+        document.getElementById('specialDesc').value = "";
+        document.getElementById('specialAmt').value = "";
+        closeSpecialModal(); 
+        loadSpecialEvents(); 
+    }
 }
 
 async function loadSpecialEvents() {
@@ -296,6 +283,7 @@ async function loadSpecialEvents() {
                 <div style="text-align: right; margin-top: 10px;">Total: <b>₹${total}</b></div>
             </div>`;
     }
+    applySavedTheme(); // Ensure event text follows theme
 }
 
 // --- UI & Helper Functions ---
@@ -308,11 +296,11 @@ function showSection(sectionId) {
     if (sectionId === 'other') loadSpecialEvents();
     if (sectionId === 'reminders') {
         loadReminders();
-        subscribeToPush(); // Trigger notification request
+        subscribeToPush();
     }
 
     document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.classList.toggle('active', btn.innerText.toLowerCase() === sectionId);
+        btn.classList.toggle('active', btn.getAttribute('onclick').includes(sectionId));
     });
 }
 
@@ -321,32 +309,10 @@ function toggleProfileMenu() {
     document.getElementById('displayUsername').innerText = localStorage.getItem("username") || "Guest User";
 }
 
+function openThemeModal() { document.getElementById('themeModal').classList.remove('hidden'); }
+function closeThemeModal() { document.getElementById('themeModal').classList.add('hidden'); }
+
 function logout() { localStorage.clear(); window.location.href = "login.html"; }
-
-function applyTextStyles(color) {
-    document.body.style.color = color;
-    document.querySelectorAll('.day-info, .expense-desc, h2, h3, label, p, b, span').forEach(el => el.style.color = color);
-}
-
-function changeTextColor(color) { applyTextStyles(color); localStorage.setItem('pref-text-color', color); }
-
-function changeBg(type, value) {
-    if (!value) return;
-    if (type === 'color') {
-        document.body.style.backgroundImage = 'none';
-        document.body.style.backgroundColor = value;
-    } else {
-        document.body.style.backgroundImage = `url('${value}')`;
-    }
-    localStorage.setItem('pref-bg-type', type);
-    localStorage.setItem('pref-bg-value', value);
-}
-
-function applySavedTheme() {
-    const tc = localStorage.getItem('pref-text-color'), bt = localStorage.getItem('pref-bg-type'), bv = localStorage.getItem('pref-bg-value');
-    if (tc) applyTextStyles(tc);
-    if (bt && bv) changeBg(bt, bv);
-}
 
 function updateAutocomplete() {
     const list = document.getElementById('recentDescriptions');
@@ -363,8 +329,17 @@ async function loadReminders() {
         const reminders = await res.json();
         container.innerHTML = reminders.length > 0 ? "" : '<p class="empty-state">No reminders set.</p>';
         reminders.forEach(rem => {
-            container.innerHTML += `<div class="section-card" style="border-left: 4px solid #4db6ac; margin-top: 10px; padding: 15px;"><div style="display: flex; justify-content: space-between; align-items: center;"><div><b>${rem.time}</b><p>${rem.message}</p></div><button onclick="deleteReminder(${rem.id})" style="color:#ff5252;"><i class="fas fa-trash"></i></button></div></div>`;
+            container.innerHTML += `
+                <div class="section-card" style="border-left: 4px solid #4db6ac; margin-top: 10px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div><b>${rem.time}</b><p>${rem.message}</p></div>
+                        <button onclick="deleteReminder(${rem.id})" style="color:#ff5252; background:none; border:none; cursor:pointer;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>`;
         });
+        applySavedTheme();
     } catch (e) { console.error(e); }
 }
 
@@ -395,7 +370,6 @@ async function subscribeToPush() {
     try {
         const registration = await navigator.serviceWorker.ready;
         const permission = await Notification.requestPermission();
-
         if (permission !== 'granted') return;
 
         const subscription = await registration.pushManager.subscribe({
@@ -408,8 +382,6 @@ async function subscribeToPush() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userId, subscription: subscription })
         });
-
-        console.log("Push Subscribed");
     } catch (err) {
         console.error("Subscription failed:", err);
     }
@@ -444,12 +416,18 @@ async function saveExpense() {
         amount: document.getElementById('amt').value,
         category: document.getElementById('cat').value
     };
+    if(!payload.description || !payload.amount) return alert("Fill all fields");
     const res = await fetch(`${SERVER_URL}/api/expenses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     });
-    if (res.ok) { closeModal(); loadExpenses(); }
+    if (res.ok) { 
+        document.getElementById('desc').value = "";
+        document.getElementById('amt').value = "";
+        closeModal(); 
+        loadExpenses(); 
+    }
 }
 
 // --- Initialization ---
@@ -462,5 +440,5 @@ window.onload = () => {
 };
 
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
+    navigator.serviceWorker.register('sw.js').catch(err => console.log("SW registration failed", err));
 }
