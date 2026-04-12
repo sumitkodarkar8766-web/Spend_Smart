@@ -116,46 +116,25 @@
                         <button onclick="createSpecialEvent()" class="save-btn">Create Event</button>
                     </div>
                 </div>
-
                 <div id="specialEventsContainer"></div>
             </section>
+
+            <section id="reminders-section" class="hidden">
+                <div class="section-card">
+                    <h3><i class="fas fa-bell"></i> Set Expense Reminder</h3>
+                    <p class="section-hint">Get notified to log your daily spends.</p>
+                    <div class="budget-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                        <label>Reminder Time</label>
+                        <input type="time" id="reminderTime" style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
+                        <label>Message</label>
+                        <input type="text" id="reminderMsg" placeholder="e.g., Add your reminder message" style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
+                        <button onclick="saveReminder()" class="save-btn">Add Reminder</button>
+                    </div>
+                </div>
+                <div id="reminderListContainer"></div>
+            </section>
         </main>
-        <section id="reminders-section" class="hidden">
-    <div class="section-card">
-        <h3><i class="fas fa-bell"></i> Set Expense Reminder</h3>
-        <p class="section-hint">Get notified to log your daily spends. You can set multiple reminders per day.</p>
-        
-        <div class="budget-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
-            <label>Reminder Time</label>
-            <input type="time" id="reminderTime" style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
-            
-            <label>Message</label>
-            <input type="text" id="reminderMsg" placeholder="e.g., Add your reminder message" style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
-            
-            <button onclick="saveReminder()" class="save-btn">Add Reminder</button>
-        </div>
     </div>
-
-    <div id="reminderListContainer">
-        </div>
-</section>
-    </div>
-
-    <div id="specialExpenseModal" class="modal-overlay hidden">
-    <div class="modal-content">
-        <h3 id="specialModalTitle">Add to Event</h3>
-        <p id="specialEventNameLabel"></p>
-        <input type="text" id="specialDesc" placeholder="Spend Description">
-        <input type="number" id="specialAmt" placeholder="Amount">
-        
-        <input type="hidden" id="activeEventId"> 
-
-        <div class="modal-actions">
-            <button class="cancel-btn" onclick="closeSpecialModal()">Cancel</button>
-            <button class="save-btn" onclick="saveSpecialExpense()">Save Spend</button>
-        </div>
-    </div>
-</div>
 
     <div id="themeModal" class="modal-overlay hidden">
         <div class="modal-content theme-modal-content">
@@ -218,7 +197,20 @@
         </div>
     </div>
 
+    <div id="specialExpenseModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="specialModalTitle">Add to Event</h3>
+            <p id="specialEventNameLabel"></p>
+            <input type="text" id="specialDesc" placeholder="Spend Description">
+            <input type="number" id="specialAmt" placeholder="Amount">
+            <input type="hidden" id="activeEventId"> 
+            <div class="modal-actions">
+                <button class="cancel-btn" onclick="closeSpecialModal()">Cancel</button>
+                <button class="save-btn" onclick="saveSpecialExpense()">Save Spend</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
-
 </html>
