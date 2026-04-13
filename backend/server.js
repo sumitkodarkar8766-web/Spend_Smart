@@ -27,22 +27,32 @@ function encrypt(text) {
 }
 
 function decrypt(encryptedData) {
-    if (!encryptedData || !encryptedData.includes(':')) return encryptedData;
+    // If it's empty or doesn't look like our encrypted format, return as is
+    if (!encryptedData || typeof encryptedData !== 'string' || !encryptedData.includes(':')) {
+        return encryptedData; 
+    }
+
     try {
-        const [ivHex, authTagHex, encryptedText] = encryptedData.split(':');
+        const parts = encryptedData.split(':');
+        if (parts.length !== 3) return encryptedData; // Return plain text if format is wrong
+
+        const [ivHex, authTagHex, encryptedText] = parts;
         const iv = Buffer.from(ivHex, 'hex');
         const authTag = Buffer.from(authTagHex, 'hex');
+        
         const decipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY), iv);
         decipher.setAuthTag(authTag);
+        
         let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
+        
         return decrypted;
     } catch (e) {
-        console.error("Decryption failed:", e);
-        return "Decryption Error";
+        console.error("Decryption failed for data:", encryptedData, e.message);
+        // If decryption fails (wrong key/tampered data), return a placeholder or the raw data
+        return "[Encrypted Data]"; 
     }
 }
-
 // --- DATABASE CONNECTION ---
 const db = mysql.createConnection({
     host: process.env.DB_HOST,
