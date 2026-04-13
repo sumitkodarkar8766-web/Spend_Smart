@@ -1,4 +1,4 @@
-const SERVER_URL = "http://localhost:4000"; 
+const SERVER_URL = "https://spend-smart-server-hyad.onrender.com"; 
 const VAPID_PUBLIC_KEY = "BEG_H6jdabd6m19WgM5G6FSeoI-cTh1c3fWzYsKZDPOsCxCOPBCtTv-YvQOw70c_oj2uTki5Raci0nJnhcxcMQM";
 
 let currentSelectedDate = "";
