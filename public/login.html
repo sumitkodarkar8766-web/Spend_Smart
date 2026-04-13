@@ -179,6 +179,13 @@ const formsTrack = document.getElementById('formsTrack');
 const loginToggle = document.getElementById('loginToggle');
 const registerToggle = document.getElementById('registerToggle');
 const slider = document.querySelector('.toggle-slider');
+const SERVER_URL = "https://spend-smart-q4z1.onrender.com"; 
+
+// --- 1. SESSION CHECK (Run immediately) ---
+// If the user is already logged in, don't show the login page—send them home.
+if (localStorage.getItem("user_id")) {
+    window.location.href = "index.html";
+}
 
 // --- Animation Logic ---
 registerToggle.addEventListener('click', () => {
@@ -196,7 +203,6 @@ loginToggle.addEventListener('click', () => {
 });
 
 // --- Database Logic ---
-const SERVER_URL = "https://spend-smart-q4z1.onrender.com";
 
 // Reusable function for form submission (e.g., Registration)
 async function handleFormSubmit(e, endpoint, payload) {
@@ -208,7 +214,6 @@ async function handleFormSubmit(e, endpoint, payload) {
             body: JSON.stringify(payload)
         });
         
-        // Check if the server responded with a success status (200-299)
         if (response.ok) {
             const data = await response.text();
             
@@ -220,7 +225,6 @@ async function handleFormSubmit(e, endpoint, payload) {
                 confirmButtonText: 'OK'
             });
         } else {
-            // If server responds with 400 or 500 status (e.g., Email already exists)
             const errorText = await response.text();
             
             Swal.fire({
@@ -234,8 +238,6 @@ async function handleFormSubmit(e, endpoint, payload) {
 
     } catch (error) {
         console.error("Connection Error:", error);
-        
-        // Handles network errors (server down, no internet)
         Swal.fire({
             icon: 'error',
             title: 'Connection Failed',
@@ -271,24 +273,23 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         if (response.ok) {
             const data = await response.json(); 
             
-            // Save to localStorage so home.html can read it
+            // --- 2. SAVE SESSION DATA ---
+            // LocalStorage keeps data even after closing the browser
             localStorage.setItem("username", data.username);
             localStorage.setItem("user_id", data.user_id); 
             localStorage.setItem("isLoggedIn", "true");
 
-            // Optional: Show a quick success popup before redirecting
             Swal.fire({
                 icon: 'success',
                 title: 'Login Successful!',
                 showConfirmButton: false,
-                timer: 1500
+                timer: 1000 // Reduced timer for faster UX
             }).then(() => {
-                window.location.href = "index.html"; // Redirect
+                window.location.href = "index.html"; 
             });
             
         } else {
             const errorText = await response.text();
-            
             Swal.fire({
                 icon: 'error',
                 title: 'Oops...',
@@ -299,7 +300,6 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         }
     } catch (error) {
         console.error("Connection Error:", error);
-        
         Swal.fire({
             icon: 'error',
             title: 'Connection Failed',

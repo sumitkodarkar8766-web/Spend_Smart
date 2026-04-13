@@ -131,6 +131,35 @@ app.post('/api/budget', (req, res) => {
         res.send("Budget Updated");
     });
 });
+// Delete an individual expense
+app.delete('/api/expenses/:id', (req, res) => {
+    const expenseId = req.params.id;
+    const sql = "DELETE FROM expenses WHERE id = ?";
+
+    db.query(sql, [expenseId], (err, result) => {
+        if (err) {
+            console.error("Error deleting expense:", err);
+            return res.status(500).json({ error: "Database error" });
+        }
+        res.json({ message: "Expense deleted successfully" });
+    });
+});
+// Update an existing expense
+app.put('/api/expenses/:id', (req, res) => {
+    const expenseId = req.params.id;
+    const { description, amount, category } = req.body;
+    
+    const sql = "UPDATE expenses SET description = ?, amount = ?, category = ? WHERE id = ?";
+    const values = [description, amount, category, expenseId];
+
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            console.error("Error updating expense:", err);
+            return res.status(500).json({ error: "Database error" });
+        }
+        res.json({ message: "Expense updated successfully" });
+    });
+});
 
 // --- SPECIAL EVENTS ---
 app.get('/api/special-events/:userId', (req, res) => {
