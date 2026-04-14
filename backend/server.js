@@ -12,6 +12,11 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static("public"));
 
+// ✅ Route for Cron-job.org to hit
+app.get("/", (req, res) => {
+  res.status(200).send("SpendSmart Backend is Awake!");
+});
+
 // 🔐 ENCRYPTION SETUP
 const algorithm = "aes-256-cbc";
 const key = crypto
