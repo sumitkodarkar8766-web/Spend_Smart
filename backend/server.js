@@ -14,6 +14,8 @@ app.use(express.static("public"));
 
 // ✅ Route for Cron-job.org to hit
 app.get("/", (req, res) => {
+  // This line will make the message appear in your Render Logs
+  console.log(`[${new Date().toLocaleTimeString()}] 💓 Heartbeat: Cron-job.org kept me awake!`);
   res.status(200).send("SpendSmart Backend is Awake!");
 });
 
