@@ -320,3 +320,10 @@ app.delete("/api/reminders/:id", (req, res) => {
 });
 // --- SERVER ---
 app.listen(4000, () => console.log(`Server running on port 4000`));
+const axios = require('axios'); // You'll need to npm install axios
+
+setInterval(() => {
+  axios.get('https://spend-smart-server-hyad.onrender.com')
+    .then(() => console.log('Self-ping successful: Staying awake!'))
+    .catch(err => console.error('Self-ping failed:', err.message));
+}, 600000); // Every 10 minutes
