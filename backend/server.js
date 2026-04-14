@@ -66,54 +66,73 @@ db.connect((err) => {
   console.log("MySQL Connected!");
 });
 
-// VAPID Setup
+/// VAPID Setup
 webpush.setVapidDetails(
-  "mailto:sumitkodarkar123@gmail.com",
+  'mailto:sumitkodarkar123@gmail.com',
   process.env.PUBLIC_VAPID_KEY,
-  process.env.PRIVATE_VAPID_KEY,
+  process.env.PRIVATE_VAPID_KEY
 );
 
 // --- PUSH NOTIFICATION SCHEDULER ---
-cron.schedule("* * * * *", () => {
-  const now = new Date().toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
+cron.schedule('* * * * *', () => {
+  const now = new Date().toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit'
   });
 
   const query = `
-    SELECT r.*, s.subscription_json 
-    FROM reminders r 
-    JOIN user_subscriptions s ON r.user_id = s.user_id 
-    WHERE TIME_FORMAT(r.reminder_time, '%H:%i') = ?`;
+    SELECT r.*, s.subscription_json
+    FROM reminders r
+    JOIN user_subscriptions s ON r.user_id = s.user_id
+    WHERE TIME_FORMAT(r.reminder_time, '%H:%i') = ?
+  `;
 
   db.execute(query, [now], (err, results) => {
     if (err) return console.error("Cron Error:", err);
 
-    results.forEach((reminder) => {
+    console.log(`[${new Date().toLocaleTimeString()}] Checking: Found ${results.length} reminders for ${now}`);
+
+    results.forEach(reminder => {
       const payload = JSON.stringify({
-        title: "Spend Smart Reminder",
-        body: reminder.message || "Time to check your expenses!",
+        title: 'Spend Smart Reminder',
+        body: reminder.message || 'Time to check your expenses!'
       });
 
-      webpush
-        .sendNotification(JSON.parse(reminder.subscription_json), payload)
-        .catch((err) => console.error("Push Error:", err.statusCode));
+      // Send notification
+      webpush.sendNotification(
+        JSON.parse(reminder.subscription_json),
+        payload
+      )
+      .then(() => {
+        console.log(`Notification sent to User ID: ${reminder.user_id}`);
+      })
+      .catch(err => {
+        console.error("Push Error for User:", reminder.user_id, err.statusCode);
+
+        // Optional: remove expired subscription
+        if (err.statusCode === 410) {
+          console.log("Subscription expired. You can delete it from DB.");
+        }
+      });
     });
   });
 });
 
-// --- SUBSCRIPTION ---
-app.post("/api/save-subscription", (req, res) => {
+// --- SUBSCRIPTION ROUTE ---
+app.post('/api/save-subscription', (req, res) => {
   const { user_id, subscription } = req.body;
+
   const subJson = JSON.stringify(subscription);
 
   const query = `
     INSERT INTO user_subscriptions (user_id, subscription_json)
     VALUES (?, ?)
-    ON DUPLICATE KEY UPDATE subscription_json = ?`;
+    ON DUPLICATE KEY UPDATE subscription_json = ?
+  `;
 
   db.execute(query, [user_id, subJson, subJson], (err) => {
     if (err) return res.status(500).send(err);
+
     res.send("Subscription Saved");
   });
 });
