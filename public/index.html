@@ -9,15 +9,23 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body>
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p>Syncing Smart Data...</p>
+    </div>
+
     <script>
         // Immediate Session Check
         if (!localStorage.getItem("user_id")) {
             window.location.href = "login.html";
         }
     </script>
+
     <div class="app-container">
         <nav class="top-nav">
             <button class="nav-item active" onclick="showSection('home')">Home</button>
@@ -75,10 +83,31 @@
                         <input type="number" id="budgetAmount" placeholder="Set Budget (₹)" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334444; background: #0f1717; color: white;">
                         <button onclick="updateBudget()" class="save-btn" style="width: auto; padding: 0 20px;">Set</button>
                     </div>
+                    
                     <div class="budget-progress-container" style="background: #0f1717; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
                         <div id="budgetBar" class="progress-bar" style="width: 0%; height: 100%; background: #4db6ac; transition: width 0.5s ease;"></div>
                     </div>
-                    <p id="budgetText" style="font-size: 0.85rem; color: #889999;">Set a budget to track progress</p>
+                    
+                    <div class="budget-details-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px;">
+                        <div class="detail-item">
+                            <span style="font-size: 0.75rem; opacity: 0.8;">Remaining Balance</span>
+                            <b id="remainingBalance" style="display: block; font-size: 1.1rem;">₹0</b>
+                        </div>
+                        <div class="detail-item">
+                            <span style="font-size: 0.75rem; opacity: 0.8;">Safe Daily Limit</span>
+                            <b id="dailyLimit" style="display: block; font-size: 1.1rem; color: #ffdb58;">₹0</b>
+                        </div>
+                        <div class="detail-item" style="grid-column: span 2; border-top: 1px solid #334444; padding-top: 10px; margin-top: 5px;">
+                            <span style="font-size: 0.75rem; opacity: 0.8;">Next Month's Outlook (Carryover)</span>
+                            <b id="nextMonthAdjustment" style="display: block; font-size: 1rem;">₹0</b>
+                            <p id="adjustmentAdvice" style="font-size: 0.7rem; margin-top: 4px; color: #889999;"></p>
+                        </div>
+                    </div>
+                    <p id="budgetText" style="font-size: 0.75rem; color: #889999; margin-top: 10px; text-align: center;">Set a budget to track progress</p>
+                    
+                    <button class="save-btn" onclick="downloadPDF()" style="background: #a29bfe; width: 100%; margin-top: 15px;">
+                        <i class="fas fa-file-pdf"></i> Download PDF Report
+                    </button>
                 </div>
 
                 <div class="section-card">
@@ -190,14 +219,12 @@
                 <b id="dailyTotalAmount">₹0</b>
             </div>
 
-            <div id="dailyEntryList" class="daily-entry-list">
-                </div>
+            <div id="dailyEntryList" class="daily-entry-list"></div>
 
             <hr>
 
             <div class="entry-form">
                 <input type="hidden" id="editingExpenseId">
-                
                 <label>Description</label>
                 <input type="text" id="desc" list="recentDescriptions" placeholder="e.g. Food, Petrol, Books">
                 <datalist id="recentDescriptions"></datalist>
@@ -231,9 +258,13 @@
         <div class="modal-content">
             <h3 id="specialModalTitle">Add to Event</h3>
             <p id="specialEventNameLabel"></p>
+            
+            <input type="hidden" id="editingSpecialId"> 
+            <input type="hidden" id="activeEventId"> 
+            
             <input type="text" id="specialDesc" placeholder="Spend Description">
             <input type="number" id="specialAmt" placeholder="Amount">
-            <input type="hidden" id="activeEventId"> 
+            
             <div class="modal-actions">
                 <button class="cancel-btn" onclick="closeSpecialModal()">Cancel</button>
                 <button class="save-btn" onclick="saveSpecialExpense()">Save Spend</button>

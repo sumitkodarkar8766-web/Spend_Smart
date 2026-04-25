@@ -11,6 +11,13 @@ const calendarGrid = document.getElementById('calendarGrid');
 
 const getUserId = () => localStorage.getItem("user_id");
 
+function showLoader() {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+}
+
+function hideLoader() {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+}
 // --- Core Expense Functions ---
 
 async function loadExpenses() {
@@ -19,6 +26,8 @@ async function loadExpenses() {
 
     if (!userId) { window.location.href = "login.html"; return; }
     if (!selectedMonth) return;
+
+    showLoader(); // START ANIMATION
 
     try {
         const [expenseRes, budgetRes] = await Promise.all([
@@ -34,9 +43,10 @@ async function loadExpenses() {
         renderAnalysis(data, budgetData.amount);
         
         applySavedTheme();
-
     } catch (e) {
         console.error("Connection error:", e);
+    } finally {
+        hideLoader(); // STOP ANIMATION (even if it fails)
     }
 }
 
@@ -84,6 +94,85 @@ function renderHomeCalendar(data, selectedMonth) {
     document.getElementById('totalAmount').innerText = `₹${data.reduce((acc, curr) => acc + parseFloat(curr.amount), 0)}`;
     applySavedTheme(); // Re-apply theme to new calendar elements
 }
+async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const monthName = document.getElementById('headerMonthName').innerText;
+    const totalAmountStr = document.getElementById('totalAmount').innerText;
+    const totalAmountNum = parseFloat(totalAmountStr.replace('₹', ''));
+
+    // 1. Header Styling
+    doc.setFontSize(22);
+    doc.setTextColor(77, 182, 172); // Theme Teal
+    doc.text("Spend Smart Report", 14, 20);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Period: ${monthName}`, 14, 30);
+
+    // 2. Data Processing (Group by Date)
+    const sortedData = [...currentMonthData].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const tableRows = [];
+    let dailyTotals = {};
+
+    sortedData.forEach(exp => {
+        const dateStr = exp.date.split('T')[0];
+        tableRows.push([dateStr, exp.description, exp.category, `Rs. ${exp.amount}`]);
+        
+        // Accumulate daily totals
+        dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + parseFloat(exp.amount);
+    });
+
+    // 3. Generate Main Table
+    doc.autoTable({
+        startY: 40,
+        head: [['Date', 'Description', 'Category', 'Amount']],
+        body: tableRows,
+        theme: 'striped',
+        headStyles: { fillColor: [77, 182, 172] },
+        styles: { fontSize: 10 }
+    });
+
+    // 4. Summary Section
+    // ... (after your main table)
+    const finalY = doc.lastAutoTable.finalY + 15;
+    const daysInMonth = new Date(monthPicker.value.split('-')[0], monthPicker.value.split('-')[1], 0).getDate();
+    const average = (totalAmountNum / daysInMonth).toFixed(2);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Monthly Summary", 14, finalY);
+
+    // Use a clean array for the summary table
+    const summaryData = [
+        ["Total Monthly Spend:", `Rs. ${totalAmountNum.toFixed(2)}`],
+        ["Daily Average:", `Rs. ${average}`],
+        ["Highest Daily Spend:", `Rs. ${Math.max(...Object.values(dailyTotals), 0).toFixed(2)}`]
+    ];
+
+    doc.autoTable({
+        startY: finalY + 5,
+        body: summaryData,
+        theme: 'plain',
+        styles: { fontSize: 11, fontStyle: 'bold', font: 'helvetica' },
+        columnStyles: { 0: { cellWidth: 50 } }
+    });
+    // 5. Add Daily Breakdown (Small Table)
+    const breakdownY = doc.lastAutoTable.finalY + 15;
+    doc.text("Daily Totals", 14, breakdownY);
+    
+    const dailyBreakdownRows = Object.keys(dailyTotals).map(date => [date, `Rs. ${dailyTotals[date]}`]);
+
+    doc.autoTable({
+        startY: breakdownY + 5,
+        head: [['Date', 'Total Spent']],
+        body: dailyBreakdownRows,
+        theme: 'grid',
+        headStyles: { fillColor: [162, 155, 254] }, // Purple theme for breakdown
+        margin: { left: 14, right: 100 } // Narrower table
+    });
+
+    doc.save(`SpendSmart_${monthName.replace(' ', '_')}.pdf`);
+}
 
 function renderAnalysis(data, budget) {
     let monthTotal = 0;
@@ -120,20 +209,54 @@ function renderAnalysis(data, budget) {
 
 function updateBudgetUI(spent, budget) {
     const bar = document.getElementById('budgetBar');
-    const text = document.getElementById('budgetText');
+    const remainingText = document.getElementById('remainingBalance');
+    const dailyLimitText = document.getElementById('dailyLimit');
+    const nextMonthAdj = document.getElementById('nextMonthAdjustment');
+    const adjAdvice = document.getElementById('adjustmentAdvice');
+    
     document.getElementById('budgetAmount').value = budget;
 
     if (budget > 0) {
+        const remaining = budget - spent;
         const pct = Math.min((spent / budget) * 100, 100);
+        
+        // 1. Progress Bar & Theme
         bar.style.width = pct + "%";
         bar.style.backgroundColor = pct > 90 ? "#ff5252" : "#4db6ac";
-        text.innerText = `Spent ₹${spent} of ₹${budget} (${Math.round(pct)}%)`;
+        
+        // 2. Remaining Balance (Red if negative)
+        remainingText.innerText = `₹${remaining.toFixed(2)}`;
+        remainingText.style.color = remaining < 0 ? "#ff5252" : "#4db6ac";
+        
+        // 3. Dynamic Daily Limit
+        const now = new Date();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const remainingDays = Math.max((daysInMonth - now.getDate()) + 1, 1);
+        
+        const dailyLimit = remaining > 0 ? (remaining / remainingDays) : 0;
+        dailyLimitText.innerText = `₹${dailyLimit.toFixed(0)}/day`;
+
+        // 4. Next Month Management
+        // If remaining is positive, it's a "Surplus" to use. If negative, it's a "Cut" needed.
+        if (remaining >= 0) {
+            nextMonthAdj.innerText = `+ ₹${remaining.toFixed(2)} Extra`;
+            nextMonthAdj.style.color = "#4db6ac";
+            adjAdvice.innerText = `Great! You can add ₹${(remaining / 30).toFixed(0)} to each day's budget next month.`;
+        } else {
+            const deficit = Math.abs(remaining);
+            nextMonthAdj.innerText = `- ₹${deficit.toFixed(2)} Debt`;
+            nextMonthAdj.style.color = "#ff5252";
+            adjAdvice.innerText = `Warning: You must cut ₹${(deficit / 30).toFixed(0)} per day next month to recover.`;
+        }
+
+        document.getElementById('budgetText').innerText = `${Math.round(pct)}% of monthly budget used`;
     } else {
         bar.style.width = "0%";
-        text.innerText = "Set a budget to track progress";
+        remainingText.innerText = "₹0";
+        nextMonthAdj.innerText = "₹0";
+        adjAdvice.innerText = "Set a budget to see next month's plan.";
     }
 }
-
 async function updateBudget() {
     const amount = document.getElementById('budgetAmount').value;
     const res = await fetch(`${SERVER_URL}/api/budget`, {
@@ -231,69 +354,41 @@ function applySavedTheme() {
 
 // --- Special Events Logic ---
 
-async function createSpecialEvent() {
-    const title = document.getElementById('eventTitle').value;
-    const date = document.getElementById('eventDate').value;
-    const userId = getUserId();
-
-    if (!title || !date) return alert("Please provide both a title and a date.");
-
-    try {
-        const res = await fetch(`${SERVER_URL}/api/special-events`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, title: title, event_date: date })
-        });
-        if (res.ok) {
-            document.getElementById('eventTitle').value = "";
-            document.getElementById('eventDate').value = "";
-            loadSpecialEvents();
-        }
-    } catch (e) { console.error(e); }
-}
-
-function openSpecialModal(eventId, eventTitle) {
-    document.getElementById('activeEventId').value = eventId;
-    document.getElementById('specialEventNameLabel').innerText = `Adding to: ${eventTitle}`;
-    document.getElementById('specialExpenseModal').classList.remove('hidden');
-}
-
-function closeSpecialModal() { document.getElementById('specialExpenseModal').classList.add('hidden'); }
-
-async function saveSpecialExpense() {
-    const event_id = document.getElementById('activeEventId').value;
-    const description = document.getElementById('specialDesc').value;
-    const amount = document.getElementById('specialAmt').value;
-    if (!description || !amount) return alert("Please fill all fields");
-    const res = await fetch(`${SERVER_URL}/api/special-event-spends`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_id, description, amount })
-    });
-    if (res.ok) { 
-        document.getElementById('specialDesc').value = "";
-        document.getElementById('specialAmt').value = "";
-        closeSpecialModal(); 
-        loadSpecialEvents(); 
-    }
-}
-
+// --- Updated Load Special Events with Action Buttons ---
 async function loadSpecialEvents() {
     const res = await fetch(`${SERVER_URL}/api/special-events/${getUserId()}`);
     const events = await res.json();
     const container = document.getElementById('specialEventsContainer');
     container.innerHTML = "";
+
     for (const event of events) {
         const dataRes = await fetch(`${SERVER_URL}/api/special-event-data/${event.id}`);
         const { items, total } = await dataRes.json();
+        
         container.innerHTML += `
             <div class="section-card" style="border-left: 4px solid #ffdb58; margin-top: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                    <div><h4 style="margin: 0;">${event.title}</h4><small>Created: ${event.event_date}</small></div>
-                    <button class="add-day-btn" onclick="openSpecialModal('${event.id}', '${event.title}')">+ Add Spend</button>
+                    <div>
+                        <h4 style="margin: 0;">${event.title}</h4>
+                        <small>Created: ${event.event_date}</small>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="add-day-btn" onclick="openSpecialModal('${event.id}', '${event.title}')">+ Add</button>
+                        <button onclick="deleteSpecialEvent(${event.id})" style="color:#ff5252; background:none; border:none; cursor:pointer; font-size: 1.1rem;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="event-items-list">
-                    ${items.map(item => `<div style="display: flex; justify-content: space-between;"><span>${item.description}</span><b>₹${item.amount}</b></div>`).join('')}
+                    ${items.map(item => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #33444455;">
+                            <span>${item.description}</span>
+                            <div>
+                                <b style="margin-right: 10px;">₹${item.amount}</b>
+                                <button class="edit-icon" onclick="editSpecialExpense('${item.id}', '${item.description}', ${item.amount}, '${event.id}')" style="background:none; border:none; color:#4db6ac;"><i class="fas fa-edit"></i></button>
+                                <button class="delete-icon" onclick="deleteSpecialExpense(${item.id})" style="background:none; border:none; color:#ff5252;"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>`).join('')}
                 </div>
                 <div style="text-align: right; margin-top: 10px;">Total: <b>₹${total}</b></div>
             </div>`;
@@ -301,6 +396,55 @@ async function loadSpecialEvents() {
     applySavedTheme();
 }
 
+// --- New Delete/Edit Handlers for Special Events ---
+
+async function deleteSpecialEvent(eventId) {
+    if (!confirm("Delete this entire event and all its expenses?")) return;
+    const res = await fetch(`${SERVER_URL}/api/special-events/${eventId}`, { method: 'DELETE' });
+    if (res.ok) loadSpecialEvents();
+}
+
+async function deleteSpecialExpense(itemId) {
+    if (!confirm("Remove this item?")) return;
+    const res = await fetch(`${SERVER_URL}/api/special-event-spends/${itemId}`, { method: 'DELETE' });
+    if (res.ok) loadSpecialEvents();
+}
+
+function editSpecialExpense(itemId, desc, amt, eventId) {
+    document.getElementById('activeEventId').value = eventId;
+    document.getElementById('editingSpecialId').value = itemId; // You'll need to add this hidden input
+    document.getElementById('specialDesc').value = desc;
+    document.getElementById('specialAmt').value = amt;
+    document.getElementById('specialModalTitle').innerText = "Edit Spend";
+    document.getElementById('specialExpenseModal').classList.remove('hidden');
+}
+
+// --- Updated Save Function to handle both Create and Update ---
+async function saveSpecialExpense() {
+    const event_id = document.getElementById('activeEventId').value;
+    const editId = document.getElementById('editingSpecialId').value;
+    const description = document.getElementById('specialDesc').value;
+    const amount = document.getElementById('specialAmt').value;
+
+    if (!description || !amount) return alert("Please fill all fields");
+
+    const method = editId ? 'PUT' : 'POST';
+    const url = editId ? `${SERVER_URL}/api/special-event-spends/${editId}` : `${SERVER_URL}/api/special-event-spends`;
+
+    const res = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id, description, amount })
+    });
+
+    if (res.ok) {
+        document.getElementById('specialDesc').value = "";
+        document.getElementById('specialAmt').value = "";
+        document.getElementById('editingSpecialId').value = "";
+        closeSpecialModal();
+        loadSpecialEvents();
+    }
+}
 function showSection(sectionId) {
     document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
     document.getElementById(`${sectionId}-section`).classList.remove('hidden');
@@ -483,6 +627,7 @@ async function deleteExpense(id) {
     const res = await fetch(`${SERVER_URL}/api/expenses/${id}`, { method: 'DELETE' });
     if(res.ok) loadExpenses().then(() => openModal(currentSelectedDate));
 }
+
 
 // --- Robust Initialization for Mobile ---
 
