@@ -71,7 +71,13 @@
         <main id="main-content">
             <section id="home-section">
                 <div class="calendar-labels">
-                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
                 </div>
                 <div id="calendarGrid" class="calendar-grid"></div>
             </section>
@@ -80,15 +86,20 @@
                 <div class="section-card budget-card">
                     <h3><i class="fas fa-wallet"></i> Monthly Budget</h3>
                     <div class="budget-input-area" style="display: flex; gap: 10px; margin: 15px 0;">
-                        <input type="number" id="budgetAmount" placeholder="Set Budget (₹)" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334444; background: #0f1717; color: white;">
-                        <button onclick="updateBudget()" class="save-btn" style="width: auto; padding: 0 20px;">Set</button>
+                        <input type="number" id="budgetAmount" placeholder="Set Budget (₹)"
+                            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334444; background: #0f1717; color: white;">
+                        <button onclick="updateBudget()" class="save-btn"
+                            style="width: auto; padding: 0 20px;">Set</button>
                     </div>
-                    
-                    <div class="budget-progress-container" style="background: #0f1717; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
-                        <div id="budgetBar" class="progress-bar" style="width: 0%; height: 100%; background: #4db6ac; transition: width 0.5s ease;"></div>
+
+                    <div class="budget-progress-container"
+                        style="background: #0f1717; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
+                        <div id="budgetBar" class="progress-bar"
+                            style="width: 0%; height: 100%; background: #4db6ac; transition: width 0.5s ease;"></div>
                     </div>
-                    
-                    <div class="budget-details-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px;">
+
+                    <div class="budget-details-grid"
+                        style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px;">
                         <div class="detail-item">
                             <span style="font-size: 0.75rem; opacity: 0.8;">Remaining Balance</span>
                             <b id="remainingBalance" style="display: block; font-size: 1.1rem;">₹0</b>
@@ -97,16 +108,20 @@
                             <span style="font-size: 0.75rem; opacity: 0.8;">Safe Daily Limit</span>
                             <b id="dailyLimit" style="display: block; font-size: 1.1rem; color: #ffdb58;">₹0</b>
                         </div>
-                        <div class="detail-item" style="grid-column: span 2; border-top: 1px solid #334444; padding-top: 10px; margin-top: 5px;">
+                        <div class="detail-item"
+                            style="grid-column: span 2; border-top: 1px solid #334444; padding-top: 10px; margin-top: 5px;">
                             <span style="font-size: 0.75rem; opacity: 0.8;">Next Month's Outlook (Carryover)</span>
                             <b id="nextMonthAdjustment" style="display: block; font-size: 1rem;">₹0</b>
                             <p id="adjustmentAdvice" style="font-size: 0.7rem; margin-top: 4px; color: #889999;"></p>
                         </div>
                     </div>
-                    <p id="budgetText" style="font-size: 0.75rem; color: #889999; margin-top: 10px; text-align: center;">Set a budget to track progress</p>
-                    
-                    <button class="save-btn" onclick="downloadPDF()" style="background: #a29bfe; width: 100%; margin-top: 15px;">
-                        <i class="fas fa-file-pdf"></i> Download PDF Report
+                    <p id="budgetText"
+                        style="font-size: 0.75rem; color: #889999; margin-top: 10px; text-align: center;">Set a budget
+                        to track progress</p>
+
+                    <button class="save-btn" onclick="downloadPDF()"
+                        style="background: #a29bfe; width: 100%; margin-top: 15px;">
+                        <i class="fas fa-file-pdf"></i> Download Monthly Report
                     </button>
                 </div>
 
@@ -125,12 +140,22 @@
                 </div>
 
                 <div class="section-card">
-                    <h3><i class="fas fa-calendar-week"></i> Weekly Spends</h3>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                        <h3><i class="fas fa-calendar-week"></i> Weekly Spends</h3>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <input type="date" id="reportStartDate"
+                                style="padding: 5px; border-radius: 5px; border: 1px solid #334444; background: #0f1717; color: white; font-size: 0.8rem;">
+                            <button class="save-btn" onclick="downloadWeeklyPDF()"
+                                style="background: #4db6ac; width: auto; padding: 5px 15px; font-size: 0.8rem;">
+                                <i class="fas fa-file-pdf"></i> Download Week
+                            </button>
+                        </div>
+                    </div>
                     <div style="height: 250px; width: 100%;">
                         <canvas id="weeklyChart"></canvas>
                     </div>
                 </div>
-
                 <div class="section-card">
                     <h3><i class="fas fa-chart-pie"></i> Category Distribution</h3>
                     <div style="height: 250px; width: 100%; display: flex; justify-content: center;">
@@ -148,9 +173,12 @@
                 <div class="section-card">
                     <h3><i class="fas fa-star"></i> Create Special Event</h3>
                     <p class="section-hint">Log a trip, party, or project to track separately.</p>
-                    <div class="budget-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
-                        <input type="text" id="eventTitle" placeholder="Event Title" style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white;">
-                        <input type="date" id="eventDate" style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white;">
+                    <div class="budget-input-area"
+                        style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                        <input type="text" id="eventTitle" placeholder="Event Title"
+                            style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white;">
+                        <input type="date" id="eventDate"
+                            style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white;">
                         <button onclick="createSpecialEvent()" class="save-btn">Create Event</button>
                     </div>
                 </div>
@@ -161,11 +189,14 @@
                 <div class="section-card">
                     <h3><i class="fas fa-bell"></i> Set Expense Reminder</h3>
                     <p class="section-hint">Get notified to log your daily spends.</p>
-                    <div class="budget-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                    <div class="budget-input-area"
+                        style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
                         <label>Reminder Time</label>
-                        <input type="time" id="reminderTime" style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
+                        <input type="time" id="reminderTime"
+                            style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
                         <label>Message</label>
-                        <input type="text" id="reminderMsg" placeholder="e.g., Add your reminder message" style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
+                        <input type="text" id="reminderMsg" placeholder="e.g., Add your reminder message"
+                            style="padding:12px; border-radius:10px; border:1px solid #334444; background:#0f1717; color:white;">
                         <button onclick="saveReminder()" class="save-btn">Add Reminder</button>
                     </div>
                 </div>
@@ -186,7 +217,7 @@
                 <button class="theme-dot" style="background: #a29bfe;" onclick="changeTextColor('#a29bfe')"></button>
                 <button class="theme-dot" style="background: #fab1a0;" onclick="changeTextColor('#fab1a0')"></button>
             </div>
-            
+
             <label>Background Color</label>
             <div class="theme-grid">
                 <button class="theme-opt" style="background: #0f1717;" onclick="changeBg('color', '#0f1717')"></button>
@@ -197,8 +228,12 @@
 
             <label>Mobile Wallpapers</label>
             <div class="theme-grid">
-                <button class="theme-opt img-bg" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=100');" onclick="changeBg('wallpaper', 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1080')"></button>
-                <button class="theme-opt img-bg" style="background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=100');" onclick="changeBg('wallpaper', 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1080')"></button>
+                <button class="theme-opt img-bg"
+                    style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=100');"
+                    onclick="changeBg('wallpaper', 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1080')"></button>
+                <button class="theme-opt img-bg"
+                    style="background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=100');"
+                    onclick="changeBg('wallpaper', 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1080')"></button>
             </div>
 
             <div class="modal-actions">
@@ -258,13 +293,15 @@
         <div class="modal-content">
             <h3 id="specialModalTitle">Add to Event</h3>
             <p id="specialEventNameLabel"></p>
-            
-            <input type="hidden" id="editingSpecialId"> 
-            <input type="hidden" id="activeEventId"> 
-            
-            <input type="text" id="specialDesc" placeholder="Spend Description">
+
+            <input type="hidden" id="editingSpecialId">
+            <input type="hidden" id="activeEventId">
+
+            <label>Description</label>
+            <input type="text" id="specialDesc" placeholder="Spend Description" style="margin-bottom: 10px;">
+            <label>Amount (₹)</label>
             <input type="number" id="specialAmt" placeholder="Amount">
-            
+
             <div class="modal-actions">
                 <button class="cancel-btn" onclick="closeSpecialModal()">Cancel</button>
                 <button class="save-btn" onclick="saveSpecialExpense()">Save Spend</button>
@@ -274,4 +311,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>
