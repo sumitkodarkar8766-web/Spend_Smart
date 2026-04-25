@@ -302,6 +302,58 @@ app.get("/api/special-event-data/:eventId", (req, res) => {
     res.json({ items: results, total: total });
   });
 });
+// --- SPECIAL EVENTS (ENTIRE EVENT) ---
+
+// Delete a special event and its associated spends
+app.delete('/api/special-events/:id', (req, res) => {
+    const eventId = req.params.id;
+    // Note: If you don't have ON DELETE CASCADE in your DB, 
+    // you must delete from special_event_spends first.
+    const sql = "DELETE FROM special_events WHERE id = ?";
+    
+    db.query(sql, [eventId], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "Event deleted successfully" });
+    });
+});
+
+// --- SPECIAL EVENT SPENDS (INDIVIDUAL ITEMS) ---
+
+// Delete an individual spend item from an event
+app.delete('/api/special-event-spends/:id', (req, res) => {
+    const itemId = req.params.id;
+    const sql = "DELETE FROM special_event_spends WHERE id = ?";
+    
+    db.query(sql, [itemId], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "Item deleted successfully" });
+    });
+});
+
+// Update (Edit) an individual spend item
+app.put('/api/special-event-spends/:id', (req, res) => {
+    const itemId = req.params.id;
+    const { description, amount } = req.body;
+    const sql = "UPDATE special_event_spends SET description = ?, amount = ? WHERE id = ?";
+    
+    db.query(sql, [description, amount, itemId], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "Item updated successfully" });
+    });
+});
+
+// Get data for a single special event (useful for refreshing UI)
+app.get('/api/special-event-data/:eventId', (req, res) => {
+    const eventId = req.params.eventId;
+    const sql = "SELECT * FROM special_event_spends WHERE event_id = ?";
+    
+    db.query(sql, [eventId], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        const total = results.reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+        res.json({ items: results, total: total });
+    });
+});
 app.post("/api/reminders", (req, res) => {
   const { user_id, reminder_time, message } = req.body;
   const query =
