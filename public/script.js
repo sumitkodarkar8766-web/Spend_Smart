@@ -64,7 +64,7 @@ if (SpeechRecognition) {
                     }
                 }
 
-                // Call the silent save function for each item[cite: 2, 3]
+                // Call the silent save function for each item
                 await silentSaveExpense(description, amount, category);
             }
         }
@@ -76,11 +76,11 @@ if (SpeechRecognition) {
         hideLoader();
     };
 
-    recognition.onerror = () => { stopVoiceUI(); alert("Voice error. Try again."); };
+    recognition.onerror = () => { stopVoiceUI(); Swal.fire("Error", "Voice error. Try again.", "error"); };
     recognition.onend = () => stopVoiceUI();
 }
 
-// Helper to save without closing modal or alerts[cite: 3]
+// Helper to save without closing modal or alerts
 async function silentSaveExpense(desc, amt, cat) {
     const payload = { 
         user_id: getUserId(), 
@@ -99,7 +99,7 @@ async function silentSaveExpense(desc, amt, cat) {
 }
 
 function startVoiceInput() {
-    if (!recognition) return alert("Not supported.");
+    if (!recognition) return Swal.fire("Notice", "Voice recognition is not supported in this browser.", "info");
     recognition.start();
     document.getElementById('voiceStatus').classList.remove('hidden');
     document.getElementById('voiceBtn').style.background = "#ff5252";
@@ -303,7 +303,7 @@ async function downloadWeeklyPDF() {
     });
 
     if (weeklyData.length === 0) {
-        return alert("No expenses found for the selected range: " + dateRangeStr);
+        return Swal.fire("No Data", "No expenses found for the selected range: " + dateRangeStr, "warning");
     }
 
     showLoader();
@@ -457,7 +457,7 @@ async function createSpecialEvent() {
     const date = document.getElementById('eventDate').value;
     const userId = getUserId();
 
-    if (!title || !date) return alert("Please provide both a title and a date.");
+    if (!title || !date) return Swal.fire("Input Missing", "Please provide both a title and a date.", "warning");
 
     showLoader();
     try {
@@ -533,19 +533,40 @@ async function loadSpecialEvents() {
 }
 
 async function deleteSpecialEvent(eventId) {
-    if (!confirm("Delete entire event?")) return;
-    showLoader();
-    const res = await fetch(`${SERVER_URL}/api/special-events/${eventId}`, { method: 'DELETE' });
-    if (res.ok) await loadSpecialEvents();
-    hideLoader();
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "Delete entire event?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            showLoader();
+            const res = await fetch(`${SERVER_URL}/api/special-events/${eventId}`, { method: 'DELETE' });
+            if (res.ok) await loadSpecialEvents();
+            hideLoader();
+        }
+    });
 }
 
 async function deleteSpecialExpense(itemId) {
-    if (!confirm("Remove this item?")) return;
-    showLoader();
-    const res = await fetch(`${SERVER_URL}/api/special-event-spends/${itemId}`, { method: 'DELETE' });
-    if (res.ok) await loadSpecialEvents();
-    hideLoader();
+    Swal.fire({
+        title: 'Remove item?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, remove it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            showLoader();
+            const res = await fetch(`${SERVER_URL}/api/special-event-spends/${itemId}`, { method: 'DELETE' });
+            if (res.ok) await loadSpecialEvents();
+            hideLoader();
+        }
+    });
 }
 
 function openSpecialModal(eventId, eventTitle) {
@@ -574,7 +595,7 @@ async function saveSpecialExpense() {
     const description = document.getElementById('specialDesc').value;
     const amount = document.getElementById('specialAmt').value;
 
-    if (!description || !amount) return alert("Please fill all fields");
+    if (!description || !amount) return Swal.fire("Required", "Please fill all fields", "info");
 
     showLoader();
     const method = editId ? 'PUT' : 'POST';
@@ -716,7 +737,7 @@ async function loadReminders() {
 async function saveReminder() {
     const time = document.getElementById('reminderTime').value;
     const msg = document.getElementById('reminderMsg').value || "Time to log daily expenses!";
-    if (!time) return alert("Please select a time");
+    if (!time) return Swal.fire("Notice", "Please select a time", "info");
     const res = await fetch(`${SERVER_URL}/api/reminders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -726,9 +747,19 @@ async function saveReminder() {
 }
 
 async function deleteReminder(id) {
-    if (!confirm("Remove reminder?")) return;
-    await fetch(`${SERVER_URL}/api/reminders/${id}`, { method: 'DELETE' });
-    loadReminders();
+    Swal.fire({
+        title: 'Remove reminder?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, remove it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            await fetch(`${SERVER_URL}/api/reminders/${id}`, { method: 'DELETE' });
+            loadReminders();
+        }
+    });
 }
 
 async function subscribeToPush() {
@@ -790,7 +821,7 @@ function closeModal() { document.getElementById('modalOverlay').classList.add('h
 async function saveExpense() {
     const editId = document.getElementById('editingExpenseId').value;
     const payload = { user_id: getUserId(), date: currentSelectedDate, description: document.getElementById('desc').value, amount: document.getElementById('amt').value, category: document.getElementById('cat').value };
-    if(!payload.description || !payload.amount) return alert("Fill all fields");
+    if(!payload.description || !payload.amount) return Swal.fire("Incomplete", "Please fill all fields", "warning");
     showLoader();
     const url = editId ? `${SERVER_URL}/api/expenses/${editId}` : `${SERVER_URL}/api/expenses`;
     const res = await fetch(url, { method: editId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -812,11 +843,21 @@ function editExpense(id, desc, amt, cat) {
 }
 
 async function deleteExpense(id) {
-    if(!confirm("Delete?")) return;
-    showLoader();
-    const res = await fetch(`${SERVER_URL}/api/expenses/${id}`, { method: 'DELETE' });
-    if(res.ok) { await loadExpenses(); openModal(currentSelectedDate); }
-    hideLoader();
+    Swal.fire({
+        title: 'Delete?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            showLoader();
+            const res = await fetch(`${SERVER_URL}/api/expenses/${id}`, { method: 'DELETE' });
+            if(res.ok) { await loadExpenses(); openModal(currentSelectedDate); }
+            hideLoader();
+        }
+    });
 }
 
 monthPicker.addEventListener('change', loadExpenses);
