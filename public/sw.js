@@ -1,4 +1,5 @@
-const CACHE_NAME = 'spendsmart-v1';
+// Change 'v1' to 'v2' (or any new number)
+const CACHE_NAME = 'spendsmart-v2';
 const ASSETS = [
   '/',
   '/index.html',

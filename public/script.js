@@ -822,16 +822,20 @@ monthPicker.addEventListener('change', loadExpenses);
 document.addEventListener('DOMContentLoaded', () => { loadExpenses(); applySavedTheme(); });
 window.onload = () => applySavedTheme();
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(err => console.log(err)); }
+
+
+// Add this to your script.js
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').then(reg => {
-        reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New version found! Reloading to apply changes.
-                    window.location.reload(); 
-                }
-            });
-        });
+    navigator.serviceWorker.ready.then((registration) => {
+        registration.update(); // Force checks for a new sw.js on every load
+    });
+
+    // Handle the controller change (when the new SW takes over)
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            refreshing = true;
+            window.location.reload(); // Automatically reloads the page to show the new UI
+        }
     });
 }
