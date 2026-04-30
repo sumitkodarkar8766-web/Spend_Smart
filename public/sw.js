@@ -85,3 +85,10 @@ self.addEventListener('notificationclick', (event) => {
     clients.openWindow('/')
   );
 });
+self.addEventListener('install', (event) => {
+    self.skipWaiting(); // Forces the waiting service worker to become active
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(clients.claim()); // Tells the new SW to take control of all tabs immediately
+});

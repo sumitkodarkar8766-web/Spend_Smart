@@ -822,3 +822,16 @@ monthPicker.addEventListener('change', loadExpenses);
 document.addEventListener('DOMContentLoaded', () => { loadExpenses(); applySavedTheme(); });
 window.onload = () => applySavedTheme();
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(err => console.log(err)); }
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New version found! Reloading to apply changes.
+                    window.location.reload(); 
+                }
+            });
+        });
+    });
+}
