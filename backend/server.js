@@ -349,6 +349,51 @@ app.delete("/api/reminders/:id", (req, res) => {
   });
 });
 
+// Add this to your server.js
+app.post("/api/broadcast-update", (req, res) => {
+    const { title, message } = req.body;
+
+    // Use db.query or db.execute depending on your MySQL version
+    db.query("SELECT subscription_json FROM user_subscriptions", (err, results) => {
+        if (err) {
+            console.error("Database Error:", err);
+            return res.status(500).send("Database error occurred.");
+        }
+
+        if (results.length === 0) {
+            return res.send("No users have subscribed to notifications yet.");
+        }
+
+        results.forEach(row => {
+            try {
+                // Determine if parsing is needed (handles both string and object formats)
+                const subscription = typeof row.subscription_json === 'string' 
+                    ? JSON.parse(row.subscription_json) 
+                    : row.subscription_json;
+
+                const payload = JSON.stringify({
+                    title: title || "Spend Smart Update",
+                    body: message || "New features have been added!"
+                });
+
+                webpush.sendNotification(subscription, payload)
+                    .catch(err => {
+                        // 410 (Gone) or 404 (Not Found) means the user unsubscribed
+                        if (err.statusCode === 410 || err.statusCode === 404) {
+                            console.log("Removing expired subscription...");
+                        } else {
+                            console.error("Push Error:", err);
+                        }
+                    });
+            } catch (parseError) {
+                console.error("JSON Parse Error for a subscription row:", parseError);
+            }
+        });
+
+        res.send(`Attempted to push update to ${results.length} subscribers.`);
+    });
+});
+
 // --- SERVER ---
 const PORT = 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
