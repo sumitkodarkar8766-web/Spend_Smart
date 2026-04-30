@@ -6,6 +6,109 @@ let recentDescriptions = new Set();
 let weeklyChart, categoryChart;
 let currentMonthData = []; 
 
+const voiceCategoryMap = {
+    "Food": [
+        "coffee", "lunch", "dinner", "burger", "pizza", "grocery", "restaurant", "panipuri",
+        "tea", "puri", "pani", "breakfast", "snacks", "munchies", "coke", "pepsi", 
+        "juice", "maggi", "zomato", "swiggy", "fruit", "milk", "egg", "chicken", "paneer","classic","momos","chips","slodmasti"
+    ],
+    "Travel": [
+        "fuel", "petrol", "bus", "train", "taxi", "uber", "ola", "rickshaw", 
+        "auto", "diesel", "parking", "toll", "flight", "ticket", "metro"
+    ],
+    "Medical": [
+        "medicine", "doctor", "hospital", "pharmacy", "tablet", "syrup", 
+        "checkup", "clinic", "dentist", "bandage", "medical"
+    ],
+    "Stationery": [
+        "pen", "notebook", "book", "print", "pencil", "xerox", "photocopy", 
+        "binding", "assignment", "chart", "marker", "eraser", "stapler","print"
+    ],
+    "Cosmetics": [
+        "perfume", "cream", "shampoo", "soap", "salon", "barber", "haircut", 
+        "facewash", "deodorant", "lotion", "makeup"
+    ],
+   
+    "General": ["other", "misc", "cash", "spend", "expense"]
+};
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition;
+
+if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN'; 
+    recognition.interimResults = false;
+
+    recognition.onresult = async (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase();
+        console.log("Processing Speech:", transcript);
+
+        // --- Multi-Item Splitting Logic ---
+        // Splits by "and" or "comma" to handle multiple items
+        const items = transcript.split(/ and |,/); 
+        
+        showLoader(); // Show loader during bulk save
+
+        for (let item of items) {
+            const amountMatch = item.match(/\d+/);
+            if (amountMatch) {
+                const amount = amountMatch[0];
+                const description = item.replace(/\d+/g, '').replace(/rupees|rs|rupee/g, '').trim();
+                
+                let category = "General";
+                for (const [cat, keywords] of Object.entries(voiceCategoryMap)) {
+                    if (keywords.some(kw => item.includes(kw))) {
+                        category = cat;
+                        break;
+                    }
+                }
+
+                // Call the silent save function for each item[cite: 2, 3]
+                await silentSaveExpense(description, amount, category);
+            }
+        }
+
+        // Final Refresh
+        await loadExpenses();
+        openModal(currentSelectedDate);
+        stopVoiceUI();
+        hideLoader();
+    };
+
+    recognition.onerror = () => { stopVoiceUI(); alert("Voice error. Try again."); };
+    recognition.onend = () => stopVoiceUI();
+}
+
+// Helper to save without closing modal or alerts[cite: 3]
+async function silentSaveExpense(desc, amt, cat) {
+    const payload = { 
+        user_id: getUserId(), 
+        date: currentSelectedDate, 
+        description: desc, 
+        amount: amt, 
+        category: cat 
+    };
+    try {
+        await fetch(`${SERVER_URL}/api/expenses`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
+    } catch (e) { console.error("Silent Save Failed:", e); }
+}
+
+function startVoiceInput() {
+    if (!recognition) return alert("Not supported.");
+    recognition.start();
+    document.getElementById('voiceStatus').classList.remove('hidden');
+    document.getElementById('voiceBtn').style.background = "#ff5252";
+}
+
+function stopVoiceUI() {
+    document.getElementById('voiceStatus').classList.add('hidden');
+    document.getElementById('voiceBtn').style.background = "#a29bfe";
+}
+
 const monthPicker = document.getElementById('monthPicker');
 const calendarGrid = document.getElementById('calendarGrid');
 
@@ -169,18 +272,17 @@ async function downloadPDF() {
 
     doc.save(`SpendSmart_${monthName.replace(' ', '_')}.pdf`);
 }
+
 async function downloadWeeklyPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // 1. Get the selected start date or default to the current week's Sunday
     const dateInput = document.getElementById('reportStartDate').value;
     let startOfWeek;
 
     if (dateInput) {
         startOfWeek = new Date(dateInput);
     } else {
-        // Default logic: Current week's Sunday
         const now = new Date();
         startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
@@ -188,14 +290,12 @@ async function downloadWeeklyPDF() {
     
     startOfWeek.setHours(0, 0, 0, 0);
 
-    // 2. Define the End Date (6 days after the start)
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
     
     const dateRangeStr = `${startOfWeek.toLocaleDateString('en-IN')} - ${endOfWeek.toLocaleDateString('en-IN')}`;
 
-    // 3. Filter data for this custom range
     const weeklyData = currentMonthData.filter(exp => {
         const expDate = new Date(exp.date);
         return expDate >= startOfWeek && expDate <= endOfWeek;
@@ -208,7 +308,6 @@ async function downloadWeeklyPDF() {
     showLoader();
 
     try {
-        // 4. PDF Layout (Teal Theme)
         doc.setFontSize(22);
         doc.setTextColor(77, 182, 172); 
         doc.text("Weekly Spend Smart Report", 14, 20);
@@ -232,7 +331,6 @@ async function downloadWeeklyPDF() {
             headStyles: { fillColor: [77, 182, 172] }
         });
 
-        // 5. Calculate Stats for the selected period
         const weeklyTotal = weeklyData.reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
         const finalY = doc.lastAutoTable.finalY + 15;
 
@@ -260,6 +358,7 @@ async function downloadWeeklyPDF() {
         hideLoader();
     }
 }
+
 function renderAnalysis(data, budget) {
     let monthTotal = 0;
     let highestDaily = 0;
@@ -351,8 +450,6 @@ async function updateBudget() {
     if (res.ok) await loadExpenses();
     hideLoader();
 }
-
-// --- Special Events Logic ---
 
 async function createSpecialEvent() {
     const title = document.getElementById('eventTitle').value;
@@ -498,8 +595,6 @@ async function saveSpecialExpense() {
 }
 
 function closeSpecialModal() { document.getElementById('specialExpenseModal').classList.add('hidden'); }
-
-// --- Chart/Theme/Misc ---
 
 function initWeeklyChart(weeklyData) {
     const ctx = document.getElementById('weeklyChart').getContext('2d');

@@ -263,6 +263,11 @@
                 <b id="dailyTotalAmount">₹0</b>
             </div>
 
+            <!-- New Listening Indicator Badge -->
+            <div id="voiceStatus" class="hidden" style="text-align: center; margin: 10px 0; color: #ff5252; font-weight: bold; font-size: 0.9rem;">
+                <i class="fas fa-circle-notch fa-spin"></i> Listening for spend details...
+            </div>
+
             <div id="dailyEntryList" class="daily-entry-list"></div>
 
             <hr>
@@ -291,8 +296,13 @@
                     </div>
                 </div>
 
-                <div class="modal-actions">
-                    <button id="saveBtn" class="save-btn" onclick="saveExpense()">Save Expense</button>
+                <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button id="saveBtn" class="save-btn" onclick="saveExpense()" style="flex: 1;">Save Expense</button>
+                    <!-- Voice Input Button Trigger -->
+                    <button id="voiceBtn" class="save-btn" onclick="startVoiceInput()" 
+                        style="background: #a29bfe; width: auto; padding: 0 20px;" title="Voice Input">
+                        <i class="fas fa-microphone"></i>
+                    </button>
                 </div>
             </div>
         </div>
