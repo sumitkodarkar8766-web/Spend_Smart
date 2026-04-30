@@ -9,8 +9,9 @@ let currentMonthData = [];
 const voiceCategoryMap = {
     "Food": [
         "coffee", "lunch", "dinner", "burger", "pizza", "grocery", "restaurant", "panipuri",
-        "tea", "puri", "pani", "breakfast", "snacks", "munchies", "coke", "pepsi", 
-        "juice", "maggi", "zomato", "swiggy", "fruit", "milk", "egg", "chicken", "paneer","classic","momos","chips","slodmasti"
+        "tea", "breakfast", "snacks", "munchies", "coke", "pepsi","taak","sandwitch",
+        "juice", "maggi", "zomato", "swiggy", "fruity", "milk", "egg", "chicken",
+         "paneer","classic","momos","chips","slodmasti","thumpsup","vadpav","samosa","frise"
     ],
     "Travel": [
         "fuel", "petrol", "bus", "train", "taxi", "uber", "ola", "rickshaw", 
