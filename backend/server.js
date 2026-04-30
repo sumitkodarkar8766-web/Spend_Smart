@@ -5,7 +5,7 @@ const cors = require("cors");
 const bcrypt = require("bcrypt");
 const cron = require("node-cron");
 const webpush = require("web-push");
-const crypto = require("crypto"); // ✅ NEW
+const crypto = require("crypto");
 
 const app = express();
 app.use(express.json());
@@ -14,7 +14,6 @@ app.use(express.static("public"));
 
 // ✅ Route for Cron-job.org to hit
 app.get("/", (req, res) => {
-  // This line will make the message appear in your Render Logs
   console.log(`[${new Date().toLocaleTimeString()}] 💓 Heartbeat: Cron-job.org kept me awake!`);
   res.status(200).send("SpendSmart Backend is Awake!");
 });
@@ -56,21 +55,16 @@ function decrypt(text) {
   }
 }
 
-// DB CONNECTION
-const db = mysql.createConnection({
+// DB CONNECTION (Optimized with Pool)
+const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   ssl: { rejectUnauthorized: true },
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error("Database connection failed:", err.stack);
-    return;
-  }
-  console.log("MySQL Connected!");
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
 /// VAPID Setup
@@ -97,28 +91,19 @@ cron.schedule('* * * * *', () => {
   db.execute(query, [now], (err, results) => {
     if (err) return console.error("Cron Error:", err);
 
-    console.log(`[${new Date().toLocaleTimeString()}] Checking: Found ${results.length} reminders for ${now}`);
-
     results.forEach(reminder => {
       const payload = JSON.stringify({
         title: 'Spend Smart Reminder',
         body: reminder.message || 'Time to check your expenses!'
       });
 
-      // Send notification
       webpush.sendNotification(
         JSON.parse(reminder.subscription_json),
         payload
       )
-      .then(() => {
-        console.log(`Notification sent to User ID: ${reminder.user_id}`);
-      })
       .catch(err => {
-        console.error("Push Error for User:", reminder.user_id, err.statusCode);
-
-        // Optional: remove expired subscription
         if (err.statusCode === 410) {
-          console.log("Subscription expired. You can delete it from DB.");
+          console.log("Subscription expired.");
         }
       });
     });
@@ -128,18 +113,14 @@ cron.schedule('* * * * *', () => {
 // --- SUBSCRIPTION ROUTE ---
 app.post('/api/save-subscription', (req, res) => {
   const { user_id, subscription } = req.body;
-
   const subJson = JSON.stringify(subscription);
-
   const query = `
     INSERT INTO user_subscriptions (user_id, subscription_json)
     VALUES (?, ?)
     ON DUPLICATE KEY UPDATE subscription_json = ?
   `;
-
   db.execute(query, [user_id, subJson, subJson], (err) => {
     if (err) return res.status(500).send(err);
-
     res.send("Subscription Saved");
   });
 });
@@ -164,7 +145,6 @@ app.post("/user/register", async (req, res) => {
 
 app.post("/user/login", (req, res) => {
   const { identifier, password } = req.body;
-
   db.execute(
     "SELECT * FROM users WHERE email = ? OR username = ?",
     [identifier, identifier],
@@ -183,18 +163,15 @@ app.post("/user/login", (req, res) => {
 // --- EXPENSES (🔐 ENCRYPTED) ---
 app.get("/api/expenses/:userId/:month", (req, res) => {
   const { userId, month } = req.params;
-
   db.execute(
     "SELECT id, DATE_FORMAT(date, '%Y-%m-%d') as date, description, amount, category FROM expenses WHERE user_id = ? AND date LIKE ? ORDER BY date ASC",
     [userId, `${month}%`],
     (err, results) => {
       if (err) return res.status(500).send(err);
-
       const decrypted = results.map((item) => ({
         ...item,
         description: decrypt(item.description),
       }));
-
       res.json(decrypted);
     },
   );
@@ -202,9 +179,7 @@ app.get("/api/expenses/:userId/:month", (req, res) => {
 
 app.post("/api/expenses", (req, res) => {
   let { user_id, date, description, amount, category } = req.body;
-
   const encryptedDesc = encrypt(description);
-
   db.execute(
     "INSERT INTO expenses (user_id, date, description, amount, category) VALUES (?, ?, ?, ?, ?)",
     [user_id, date, encryptedDesc, amount, category],
@@ -218,8 +193,7 @@ app.post("/api/expenses", (req, res) => {
 app.put("/api/expenses/:id", (req, res) => {
   const { description, amount, category } = req.body;
   const encryptedDesc = encrypt(description);
-
-  db.query(
+  db.execute(
     "UPDATE expenses SET description = ?, amount = ?, category = ? WHERE id = ?",
     [encryptedDesc, amount, category, req.params.id],
     (err) => {
@@ -230,7 +204,7 @@ app.put("/api/expenses/:id", (req, res) => {
 });
 
 app.delete("/api/expenses/:id", (req, res) => {
-  db.query("DELETE FROM expenses WHERE id = ?", [req.params.id], (err) => {
+  db.execute("DELETE FROM expenses WHERE id = ?", [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: "Database error" });
     res.json({ message: "Deleted" });
   });
@@ -250,7 +224,6 @@ app.get("/api/budget/:userId/:month", (req, res) => {
 
 app.post("/api/budget", (req, res) => {
   const { user_id, month, amount } = req.body;
-
   db.execute(
     "INSERT INTO budgets (user_id, month, amount) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE amount = ?",
     [user_id, month, amount, amount],
@@ -260,6 +233,9 @@ app.post("/api/budget", (req, res) => {
     },
   );
 });
+
+// --- SPECIAL EVENTS ---
+
 app.get("/api/special-events/:userId", (req, res) => {
   db.execute(
     "SELECT id, title, DATE_FORMAT(event_date, '%Y-%m-%d') as event_date FROM special_events WHERE user_id = ?",
@@ -270,6 +246,7 @@ app.get("/api/special-events/:userId", (req, res) => {
     },
   );
 });
+
 app.post("/api/special-events", (req, res) => {
   const { user_id, title, event_date } = req.body;
   db.execute(
@@ -281,102 +258,97 @@ app.post("/api/special-events", (req, res) => {
     },
   );
 });
-app.post("/api/special-event-spends", (req, res) => {
-  const { event_id, description, amount } = req.body;
-  const query =
-    "INSERT INTO special_event_spends (event_id, description, amount) VALUES (?, ?, ?)";
-  db.execute(query, [event_id, description, amount], (err, result) => {
-    if (err) return res.status(500).send(err);
-    res.json({ id: result.insertId, ...req.body });
-  });
-});
-app.get("/api/special-event-data/:eventId", (req, res) => {
-  const query =
-    "SELECT description, amount FROM special_event_spends WHERE event_id = ?";
-  db.execute(query, [req.params.eventId], (err, results) => {
-    if (err) return res.status(500).send(err);
-    const total = results.reduce(
-      (sum, item) => sum + parseFloat(item.amount),
-      0,
-    );
-    res.json({ items: results, total: total });
-  });
-});
-// --- SPECIAL EVENTS (ENTIRE EVENT) ---
 
-// Delete a special event and its associated spends
+// Fixed: Correct order of deletion to handle foreign keys
 app.delete('/api/special-events/:id', (req, res) => {
     const eventId = req.params.id;
-    // Note: If you don't have ON DELETE CASCADE in your DB, 
-    // you must delete from special_event_spends first.
-    const sql = "DELETE FROM special_events WHERE id = ?";
-    
-    db.query(sql, [eventId], (err, result) => {
+    db.execute("DELETE FROM special_event_spends WHERE event_id = ?", [eventId], (err) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "Event deleted successfully" });
+        db.execute("DELETE FROM special_events WHERE id = ?", [eventId], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "Event deleted successfully" });
+        });
     });
 });
 
-// --- SPECIAL EVENT SPENDS (INDIVIDUAL ITEMS) ---
+// --- SPECIAL EVENT SPENDS ---
 
-// Delete an individual spend item from an event
+app.get("/api/special-event-data/:eventId", (req, res) => {
+  db.execute(
+    "SELECT id, description, amount FROM special_event_spends WHERE event_id = ?",
+    [req.params.eventId],
+    (err, results) => {
+      if (err) return res.status(500).send(err);
+      const total = results.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+      res.json({ items: results, total: total });
+    },
+  );
+});
+
+app.post("/api/special-event-spends", (req, res) => {
+  const { event_id, description, amount } = req.body;
+  db.execute(
+    "INSERT INTO special_event_spends (event_id, description, amount) VALUES (?, ?, ?)",
+    [event_id, description, amount],
+    (err, result) => {
+      if (err) return res.status(500).send(err);
+      res.json({ id: result.insertId, ...req.body });
+    }
+  );
+});
+
+// Fixed: Correct Update for spend items
+app.put('/api/special-event-spends/:id', (req, res) => {
+    const { description, amount } = req.body;
+    db.execute(
+        "UPDATE special_event_spends SET description = ?, amount = ? WHERE id = ?",
+        [description, amount, req.params.id],
+        (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "Item updated successfully" });
+        }
+    );
+});
+
+// Fixed: Correct Delete for individual spend items
 app.delete('/api/special-event-spends/:id', (req, res) => {
-    const itemId = req.params.id;
-    const sql = "DELETE FROM special_event_spends WHERE id = ?";
-    
-    db.query(sql, [itemId], (err, result) => {
+    db.execute("DELETE FROM special_event_spends WHERE id = ?", [req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: "Item deleted successfully" });
     });
 });
 
-// Update (Edit) an individual spend item
-app.put('/api/special-event-spends/:id', (req, res) => {
-    const itemId = req.params.id;
-    const { description, amount } = req.body;
-    const sql = "UPDATE special_event_spends SET description = ?, amount = ? WHERE id = ?";
-    
-    db.query(sql, [description, amount, itemId], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "Item updated successfully" });
-    });
-});
-
-// Get data for a single special event (useful for refreshing UI)
-app.get('/api/special-event-data/:eventId', (req, res) => {
-    const eventId = req.params.eventId;
-    const sql = "SELECT * FROM special_event_spends WHERE event_id = ?";
-    
-    db.query(sql, [eventId], (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        const total = results.reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
-        res.json({ items: results, total: total });
-    });
-});
+// --- REMINDERS ---
 app.post("/api/reminders", (req, res) => {
   const { user_id, reminder_time, message } = req.body;
-  const query =
-    "INSERT INTO reminders (user_id, reminder_time, message) VALUES (?, ?, ?)";
-  db.execute(query, [user_id, reminder_time, message], (err, result) => {
-    if (err) return res.status(500).send(err);
-    res.json({ id: result.insertId, message: "Reminder set successfully" });
-  });
+  db.execute(
+    "INSERT INTO reminders (user_id, reminder_time, message) VALUES (?, ?, ?)",
+    [user_id, reminder_time, message],
+    (err, result) => {
+      if (err) return res.status(500).send(err);
+      res.json({ id: result.insertId, message: "Reminder set successfully" });
+    }
+  );
 });
+
 app.get("/api/reminders/:userId", (req, res) => {
-  const query =
-    "SELECT id, TIME_FORMAT(reminder_time, '%H:%i') as time, message FROM reminders WHERE user_id = ?";
-  db.execute(query, [req.params.userId], (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.json(results);
-  });
+  db.execute(
+    "SELECT id, TIME_FORMAT(reminder_time, '%H:%i') as time, message FROM reminders WHERE user_id = ?",
+    [req.params.userId],
+    (err, results) => {
+      if (err) return res.status(500).send(err);
+      res.json(results);
+    }
+  );
 });
+
 app.delete("/api/reminders/:id", (req, res) => {
   db.execute("DELETE FROM reminders WHERE id = ?", [req.params.id], (err) => {
     if (err) return res.status(500).send(err);
     res.send("Deleted");
   });
 });
-// --- SERVER ---
-app.listen(4000, () => console.log(`Server running on port 4000`));
 
+// --- SERVER ---
+const PORT = 4000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
