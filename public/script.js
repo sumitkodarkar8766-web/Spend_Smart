@@ -861,13 +861,25 @@ async function deleteExpense(id) {
 }
 
 monthPicker.addEventListener('change', loadExpenses);
-document.addEventListener('DOMContentLoaded', () => { loadExpenses(); applySavedTheme(); });
+
+document.addEventListener('DOMContentLoaded', () => { 
+    // Automatically set the picker to the current year and month[cite: 1]
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    
+    if (monthPicker) {
+        monthPicker.value = currentMonth;
+    }
+
+    loadExpenses(); 
+    applySavedTheme(); 
+});
+
 window.onload = () => applySavedTheme();
-if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(err => console.log(err)); }
 
+if ('serviceWorker' in navigator) { 
+    navigator.serviceWorker.register('sw.js').catch(err => console.log(err)); 
 
-// Add this to your script.js
-if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready.then((registration) => {
         registration.update(); // Force checks for a new sw.js on every load
     });
