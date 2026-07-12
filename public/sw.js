@@ -63,8 +63,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png',
-    badge: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png',
+    icon: '/icon.png',
+    badge: '/icon.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
