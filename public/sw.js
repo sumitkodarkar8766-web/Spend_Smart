@@ -1,7 +1,8 @@
-const CACHE_NAME = 'spendsmart-v2';
+const CACHE_NAME = 'spendsmart-v3';
 const ASSETS = [
   '/',
   '/index.html',
+  '/admin.html',
   '/login.html',
   '/style.css',
   '/script.js',
@@ -9,7 +10,6 @@ const ASSETS = [
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
-// --- 1. Installation: Cache essential files ---
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -17,11 +17,9 @@ self.addEventListener('install', (event) => {
       return cache.addAll(ASSETS);
     })
   );
-  // Force the waiting service worker to become the active service worker
   self.skipWaiting();
 });
 
-// --- 2. Activation: Clean up old caches ---
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -38,7 +36,6 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// --- 3. Fetch: Serve from cache if offline ---
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
@@ -47,7 +44,6 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// --- 4. Push: Handle incoming notifications ---
 self.addEventListener('push', (event) => {
   let data = { title: 'Spend Smart', body: 'Time to log your daily expenses!' };
 
@@ -57,7 +53,6 @@ self.addEventListener('push', (event) => {
     }
   } catch (e) {
     console.error("Push data parse error (expected JSON):", e);
-    // Fallback if the data sent wasn't valid JSON
     data = { title: 'Spend Smart', body: event.data.text() };
   }
 
@@ -73,22 +68,13 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    // FIXED: Correctly using self.registration
     self.registration.showNotification(data.title, options)
   );
 });
 
-// --- 5. Notification Click: Open the app ---
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
     clients.openWindow('/')
   );
-});
-self.addEventListener('install', (event) => {
-    self.skipWaiting(); // Forces the waiting service worker to become active
-});
-
-self.addEventListener('activate', (event) => {
-    event.waitUntil(clients.claim()); // Tells the new SW to take control of all tabs immediately
 });

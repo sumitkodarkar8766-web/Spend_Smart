@@ -380,6 +380,7 @@ app.delete("/api/reminders/:id", (req, res) => {
   });
 });
 
+// --- BROADCAST ROUTE ---
 app.post("/api/broadcast-update", (req, res) => {
     const { title, message } = req.body;
 
@@ -390,8 +391,10 @@ app.post("/api/broadcast-update", (req, res) => {
         }
 
         if (results.length === 0) {
-            return res.send("No users have subscribed to notifications yet.");
+            return res.send("No users have subscribed to push notifications yet.");
         }
+
+        let dispatchCount = 0;
 
         results.forEach(row => {
             try {
@@ -401,23 +404,24 @@ app.post("/api/broadcast-update", (req, res) => {
 
                 const payload = JSON.stringify({
                     title: title || "Spend Smart Update",
-                    body: message || "New features have been added!"
+                    body: message || "New features have arrived!"
                 });
 
                 webpush.sendNotification(subscription, payload)
+                    .then(() => dispatchCount++)
                     .catch(err => {
                         if (err.statusCode === 410 || err.statusCode === 404) {
-                            console.log("Removing expired subscription...");
+                            console.log("Stale subscription encountered.");
                         } else {
                             console.error("Push Error:", err);
                         }
                     });
             } catch (parseError) {
-                console.error("JSON Parse Error for a subscription row:", parseError);
+                console.error("JSON Parse Error on subscription:", parseError);
             }
         });
 
-        res.send(`Attempted to push update to ${results.length} subscribers.`);
+        res.send(`Dispatched push notifications across ${results.length} registered subscription records.`);
     });
 });
 

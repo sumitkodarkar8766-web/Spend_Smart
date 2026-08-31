@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spend Smart - Admin Broadcast Center</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #0f1717;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ffffff;
+            margin: 0;
+        }
+        .admin-card {
+            width: 100%;
+            max-width: 480px;
+            background: #1a2626;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #334444;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        .admin-card h2 {
+            margin-top: 0;
+            color: #a29bfe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .input-group {
+            text-align: left;
+            margin: 15px 0;
+        }
+        .input-group label {
+            font-size: 0.85rem;
+            color: #889999;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #334444;
+            background: #0f1717;
+            color: white;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .admin-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .send-btn {
+            background: #a29bfe;
+            color: #0f1717;
+            margin-bottom: 10px;
+        }
+        .back-btn {
+            background: #334444;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-card" id="adminContainer" style="display: none;">
+        <h2><i class="fas fa-satellite-dish"></i> Broadcast Center</h2>
+        <p style="font-size: 0.85rem; color: #889999; margin-bottom: 20px;">
+            Send an instant push notification to all registered and subscribed users.
+        </p>
+
+        <div class="input-group">
+            <label><i class="fas fa-heading"></i> Notification Title</label>
+            <input type="text" id="broadcastTitle" placeholder="e.g. 🚀 September Challenge is Live!">
+        </div>
+
+        <div class="input-group">
+            <label><i class="fas fa-comment-alt"></i> Notification Message</label>
+            <textarea id="broadcastMsg" rows="4" placeholder="e.g. Open Spend Smart and set your new monthly budget today."></textarea>
+        </div>
+
+        <button id="sendBroadcastBtn" class="admin-btn send-btn" onclick="sendBroadcast()">
+            <i class="fas fa-paper-plane"></i> Push Notification to All Users
+        </button>
+        <button class="admin-btn back-btn" onclick="window.location.href='index.html'">
+            <i class="fas fa-arrow-left"></i> Back to Spend Smart
+        </button>
+    </div>
+
+    <script>
+        const SERVER_URL = "https://spend-smart-server-hyad.onrender.com";
+
+        // Verification of Admin User
+        const currentUserId = localStorage.getItem("user_id");
+        const currentUsername = localStorage.getItem("username");
+
+        // Allowed Admin list
+        const adminUsers = ["Manimau", "Sumit", "Admin", "admin"];
+
+        if (currentUserId && adminUsers.includes(currentUsername)) {
+            document.getElementById('adminContainer').style.display = "block";
+        } else {
+            Swal.fire({
+                icon: "error",
+                title: "Unauthorized Access",
+                text: "You do not have administrative privileges to access this console.",
+                confirmButtonColor: "#ff5252"
+            }).then(() => {
+                window.location.href = "index.html";
+            });
+        }
+
+        async function sendBroadcast() {
+            const title = document.getElementById('broadcastTitle').value.trim();
+            const message = document.getElementById('broadcastMsg').value.trim();
+            const btn = document.getElementById('sendBroadcastBtn');
+
+            if (!title || !message) {
+                return Swal.fire("Missing Fields", "Please specify both a title and a message before broadcasting.", "warning");
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Broadcasting...';
+
+            try {
+                const res = await fetch(`${SERVER_URL}/api/broadcast-update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message })
+                });
+
+                const result = await res.text();
+                
+                Swal.fire({
+                    icon: "success",
+                    title: "Broadcast Dispatched",
+                    text: result,
+                    confirmButtonColor: "#4db6ac"
+                });
+
+                document.getElementById('broadcastTitle').value = "";
+                document.getElementById('broadcastMsg').value = "";
+            } catch (err) {
+                console.error("Broadcast failed:", err);
+                Swal.fire("Transmission Error", "Failed to connect to the broadcast server.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Push Notification to All Users';
+            }
+        }
+    </script>
+</body>
+</html>

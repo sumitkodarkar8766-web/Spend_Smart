@@ -21,7 +21,6 @@
     </div>
 
     <script>
-        // Immediate Session Check
         if (!localStorage.getItem("user_id")) {
             window.location.href = "login.html";
         }
@@ -41,7 +40,8 @@
 
         <div id="profileMenu" class="profile-dropdown hidden">
             <div class="profile-header">
-                <i class="fas fa-user-astronaut"></i>
+                <!-- Secret 5-tap trigger to open Admin Portal -->
+                <i class="fas fa-user-astronaut" onclick="handleSecretAdminTap()" style="cursor: pointer;" title="Profile"></i>
                 <p id="displayUsername">Guest User</p>
                 <span> Active account </span>
             </div>
@@ -353,6 +353,6 @@
         </div>
     </div>
 
-   <script src="script.js?v=2.2"></script>
+   <script src="script.js"></script>
 </body>
 </html>

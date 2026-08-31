@@ -1,4 +1,3 @@
-// const SERVER_URL = "http://localhost:4000"; 
 const SERVER_URL = "https://spend-smart-server-hyad.onrender.com"; 
 const VAPID_PUBLIC_KEY = "BEG_H6jdabd6m19WgM5G6FSeoI-cTh1c3fWzYsKZDPOsCxCOPBCtTv-YvQOw70c_oj2uTki5Raci0nJnhcxcMQM";
 
@@ -6,6 +5,31 @@ let currentSelectedDate = "";
 let recentDescriptions = new Set();
 let weeklyChart, categoryChart;
 let currentMonthData = []; 
+
+// Admin Secret Trigger State
+let secretTapCount = 0;
+let secretTapTimer = null;
+
+function handleSecretAdminTap() {
+    secretTapCount++;
+    clearTimeout(secretTapTimer);
+
+    if (secretTapCount >= 5) {
+        secretTapCount = 0;
+        const currentUsername = localStorage.getItem("username");
+        const adminUsers = ["Manimau", "Sumit", "Admin", "admin"];
+        
+        if (adminUsers.includes(currentUsername)) {
+            window.location.href = "admin.html";
+        } else {
+            Swal.fire("Notice", "Admin privileges required.", "info");
+        }
+    } else {
+        secretTapTimer = setTimeout(() => {
+            secretTapCount = 0;
+        }, 2000);
+    }
+}
 
 const voiceCategoryMap = {
     "Food": [
@@ -30,9 +54,9 @@ const voiceCategoryMap = {
         "perfume", "cream", "shampoo", "soap", "salon", "barber", "haircut", 
         "facewash", "deodorant", "lotion", "makeup"
     ],
-   
     "General": ["other", "misc", "cash", "spend", "expense"]
 };
+
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
 
@@ -43,8 +67,6 @@ if (SpeechRecognition) {
 
     recognition.onresult = async (event) => {
         const transcript = event.results[0][0].transcript.toLowerCase();
-        console.log("Processing Speech:", transcript);
-
         const items = transcript.split(/ and |,/); 
         
         showLoader(); 
@@ -111,7 +133,7 @@ const getUserId = () => localStorage.getItem("user_id");
 function showLoader() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoader() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
-// --- CORE EXPENSE & DASHBOARD ---
+// --- CORE EXPENSES & HOME CALENDAR ---
 async function loadExpenses() {
     const userId = getUserId();
     const selectedMonth = monthPicker.value;
@@ -187,7 +209,7 @@ function renderHomeCalendar(data, selectedMonth) {
     applySavedTheme();
 }
 
-// --- ANALYSIS & CHARTS ---
+// --- ANALYSIS ---
 function renderAnalysis(data, budget) {
     let monthTotal = 0;
     let highestDaily = 0;
@@ -314,7 +336,7 @@ function generateAdvice(spent, budget, categories) {
     else adviceText.innerText = "✅ Great job! You are within limits.";
 }
 
-// --- PDF DOWNLOADS ---
+// --- PDF EXPORTS ---
 async function downloadPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -455,7 +477,7 @@ async function downloadWeeklyPDF() {
     }
 }
 
-// --- THEMES ---
+// --- THEME CUSTOMIZATION ---
 function applyTextStyles(color) {
     if (!color) return;
     document.documentElement.style.setProperty('--user-text-color', color);
@@ -518,7 +540,7 @@ function openThemeModal() { document.getElementById('themeModal').classList.remo
 function closeThemeModal() { document.getElementById('themeModal').classList.add('hidden'); }
 function logout() { localStorage.clear(); window.location.href = "login.html"; }
 
-// --- REMINDERS ---
+// --- REMINDERS & NOTIFICATIONS ---
 async function loadReminders() {
     const container = document.getElementById('reminderListContainer');
     if (!container) return;
@@ -595,7 +617,7 @@ function urlBase64ToUint8Array(base64String) {
     return outputArray;
 }
 
-// --- DAILY ENTRY MODALS ---
+// --- ENTRY MODAL LOGIC ---
 function updateAutocomplete() {
     const list = document.getElementById('recentDescriptions');
     if (list) list.innerHTML = Array.from(recentDescriptions).map(d => `<option value="${d}">`).join('');
@@ -696,7 +718,7 @@ async function deleteExpense(id) {
     });
 }
 
-// --- TRACKER FUNCTIONS ---
+// --- TRACKER LOGIC ---
 let allTrackerData = [];
 let showingAllTracker = false;
 let trackerSearchQuery = "";
@@ -829,7 +851,6 @@ function renderTrackerCalendar(selectedMonth) {
         const isToday = dayDate.getTime() === today.getTime();
         
         const isPurchased = purchasedDates.has(dateStr);
-        
         const style = isPurchased ? `border: 2px solid #ffdb58; background: rgba(255, 219, 88, 0.15); box-shadow: inset 0 0 10px rgba(255, 219, 88, 0.2);` : ``;
 
         html += `
