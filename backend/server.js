@@ -26,7 +26,6 @@ const key = crypto
   .digest("base64")
   .substr(0, 32);
 
-// Encrypt function
 function encrypt(text) {
   if (!text) return text;
   const iv = crypto.randomBytes(16);
@@ -36,12 +35,11 @@ function encrypt(text) {
   return iv.toString("hex") + ":" + encrypted;
 }
 
-// Decrypt function
 function decrypt(text) {
   try {
     if (!text) return text;
     const parts = text.split(":");
-    if (parts.length !== 2) return text; // old data fallback
+    if (parts.length !== 2) return text; 
 
     const iv = Buffer.from(parts[0], "hex");
     const encryptedText = parts[1];
@@ -51,7 +49,7 @@ function decrypt(text) {
     decrypted += decipher.final("utf8");
     return decrypted;
   } catch {
-    return text; // fallback for non-encrypted data
+    return text; 
   }
 }
 
@@ -234,88 +232,121 @@ app.post("/api/budget", (req, res) => {
   );
 });
 
-// --- SPECIAL EVENTS ---
-
-app.get("/api/special-events/:userId", (req, res) => {
+// --- NOTES (DAILY NOTEPAD) ---
+app.get("/api/notes/:userId", (req, res) => {
   db.execute(
-    "SELECT id, title, DATE_FORMAT(event_date, '%Y-%m-%d') as event_date FROM special_events WHERE user_id = ?",
+    "SELECT id, DATE_FORMAT(note_date, '%Y-%m-%d') as date, content FROM notes WHERE user_id = ? ORDER BY note_date DESC",
     [req.params.userId],
     (err, results) => {
       if (err) return res.status(500).send(err);
       res.json(results);
-    },
-  );
-});
-
-app.post("/api/special-events", (req, res) => {
-  const { user_id, title, event_date } = req.body;
-  db.execute(
-    "INSERT INTO special_events (user_id, title, event_date) VALUES (?, ?, ?)",
-    [user_id, title, event_date],
-    (err, result) => {
-      if (err) return res.status(500).send(err);
-      res.json({ id: result.insertId, title, event_date });
-    },
-  );
-});
-
-// Fixed: Correct order of deletion to handle foreign keys
-app.delete('/api/special-events/:id', (req, res) => {
-    const eventId = req.params.id;
-    db.execute("DELETE FROM special_event_spends WHERE event_id = ?", [eventId], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        db.execute("DELETE FROM special_events WHERE id = ?", [eventId], (err) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: "Event deleted successfully" });
-        });
-    });
-});
-
-// --- SPECIAL EVENT SPENDS ---
-
-app.get("/api/special-event-data/:eventId", (req, res) => {
-  db.execute(
-    "SELECT id, description, amount FROM special_event_spends WHERE event_id = ?",
-    [req.params.eventId],
-    (err, results) => {
-      if (err) return res.status(500).send(err);
-      const total = results.reduce((sum, item) => sum + parseFloat(item.amount), 0);
-      res.json({ items: results, total: total });
-    },
-  );
-});
-
-app.post("/api/special-event-spends", (req, res) => {
-  const { event_id, description, amount } = req.body;
-  db.execute(
-    "INSERT INTO special_event_spends (event_id, description, amount) VALUES (?, ?, ?)",
-    [event_id, description, amount],
-    (err, result) => {
-      if (err) return res.status(500).send(err);
-      res.json({ id: result.insertId, ...req.body });
     }
   );
 });
 
-// Fixed: Correct Update for spend items
-app.put('/api/special-event-spends/:id', (req, res) => {
-    const { description, amount } = req.body;
-    db.execute(
-        "UPDATE special_event_spends SET description = ?, amount = ? WHERE id = ?",
-        [description, amount, req.params.id],
-        (err) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: "Item updated successfully" });
-        }
-    );
+app.post("/api/notes", (req, res) => {
+  const { user_id, date, content } = req.body;
+  db.execute(
+    "INSERT INTO notes (user_id, note_date, content) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE content = ?",
+    [user_id, date, content, content],
+    (err, result) => {
+      if (err) return res.status(500).send(err);
+      res.json({ message: "Note saved successfully" });
+    }
+  );
 });
 
-// Fixed: Correct Delete for individual spend items
-app.delete('/api/special-event-spends/:id', (req, res) => {
-    db.execute("DELETE FROM special_event_spends WHERE id = ?", [req.params.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "Item deleted successfully" });
-    });
+app.delete("/api/notes/:id", (req, res) => {
+  db.execute("DELETE FROM notes WHERE id = ?", [req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+    res.json({ message: "Note deleted" });
+  });
+});
+
+// --- TRACKER (FUZZY MATCHING & AGGREGATION) ---
+function getLevenshteinDistance(a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+    const matrix = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(null));
+    for (let i = 0; i <= a.length; i += 1) matrix[i][0] = i;
+    for (let j = 0; j <= b.length; j += 1) matrix[0][j] = j;
+    for (let i = 1; i <= a.length; i += 1) {
+        for (let j = 1; j <= b.length; j += 1) {
+            const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i][j - 1] + 1, 
+                matrix[i - 1][j] + 1, 
+                matrix[i - 1][j - 1] + indicator
+            );
+        }
+    }
+    return matrix[a.length][b.length];
+}
+
+app.get("/api/tracker/:userId", (req, res) => {
+  const userId = req.params.userId;
+  
+  db.execute(
+    "SELECT DATE_FORMAT(date, '%Y-%m-%d') as date, description, amount, category FROM expenses WHERE user_id = ?",
+    [userId],
+    (err, results) => {
+      if (err) return res.status(500).send(err);
+
+      const trackerGroups = [];
+
+      results.forEach((item) => {
+        const rawDesc = decrypt(item.description);
+        if (!rawDesc) return;
+        
+        const desc = rawDesc.toLowerCase().trim();
+        const amt = parseFloat(item.amount);
+        const month = item.date.substring(0, 7); 
+
+        let matchedGroup = trackerGroups.find(g => 
+            g.primaryName === desc || getLevenshteinDistance(g.primaryName, desc) <= 1
+        );
+
+        if (!matchedGroup) {
+          matchedGroup = { 
+            primaryName: desc, 
+            category: item.category,
+            variations: new Set([desc]), 
+            frequency: 0, 
+            totalAmount: 0, 
+            minSpend: amt,
+            maxSpend: amt,
+            dates: [], 
+            months: new Set() 
+          };
+          trackerGroups.push(matchedGroup);
+        }
+
+        matchedGroup.variations.add(desc);
+        matchedGroup.frequency += 1;
+        matchedGroup.totalAmount += amt;
+        matchedGroup.minSpend = Math.min(matchedGroup.minSpend, amt);
+        matchedGroup.maxSpend = Math.max(matchedGroup.maxSpend, amt);
+        matchedGroup.dates.push(item.date);
+        matchedGroup.months.add(month);
+      });
+
+      const sortedTracker = trackerGroups
+        .map(g => ({
+          description: g.primaryName,
+          category: g.category,
+          spellingsFound: Array.from(g.variations).join(', '),
+          frequency: g.frequency,
+          totalAmount: g.totalAmount,
+          minSpend: g.minSpend,
+          maxSpend: g.maxSpend,
+          monthsAppeared: g.months.size,
+          dates: g.dates.sort((a,b) => new Date(b) - new Date(a))
+        }))
+        .sort((a, b) => b.frequency - a.frequency);
+
+      res.json(sortedTracker);
+    }
+  );
 });
 
 // --- REMINDERS ---
@@ -349,11 +380,9 @@ app.delete("/api/reminders/:id", (req, res) => {
   });
 });
 
-// Add this to your server.js
 app.post("/api/broadcast-update", (req, res) => {
     const { title, message } = req.body;
 
-    // Use db.query or db.execute depending on your MySQL version
     db.query("SELECT subscription_json FROM user_subscriptions", (err, results) => {
         if (err) {
             console.error("Database Error:", err);
@@ -366,7 +395,6 @@ app.post("/api/broadcast-update", (req, res) => {
 
         results.forEach(row => {
             try {
-                // Determine if parsing is needed (handles both string and object formats)
                 const subscription = typeof row.subscription_json === 'string' 
                     ? JSON.parse(row.subscription_json) 
                     : row.subscription_json;
@@ -378,7 +406,6 @@ app.post("/api/broadcast-update", (req, res) => {
 
                 webpush.sendNotification(subscription, payload)
                     .catch(err => {
-                        // 410 (Gone) or 404 (Not Found) means the user unsubscribed
                         if (err.statusCode === 410 || err.statusCode === 404) {
                             console.log("Removing expired subscription...");
                         } else {

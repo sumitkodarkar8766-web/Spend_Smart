@@ -13,15 +13,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-FGP3N6B7KQ"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-FGP3N6B7KQ');
-</script>
 
 <body>
     <div id="loadingOverlay" class="loading-overlay hidden">
@@ -40,7 +31,8 @@
         <nav class="top-nav">
             <button class="nav-item active" onclick="showSection('home')">Home</button>
             <button class="nav-item" onclick="showSection('analysis')">Analysis</button>
-            <button class="nav-item" onclick="showSection('other')">Other</button>
+            <button class="nav-item" onclick="showSection('tracker')">Tracker</button>
+            <button class="nav-item" onclick="showSection('notes')">Notes</button>
             <button class="nav-item" onclick="showSection('reminders')">Reminders</button>
             <button class="nav-item profile-trigger" onclick="toggleProfileMenu()">
                 <i class="fas fa-user-circle"></i>
@@ -150,8 +142,7 @@
                 </div>
 
                 <div class="section-card">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
                         <h3><i class="fas fa-calendar-week"></i> Weekly Spends</h3>
                         <div style="display: flex; gap: 5px; align-items: center;">
                             <input type="date" id="reportStartDate"
@@ -179,20 +170,74 @@
                 </div>
             </section>
 
-            <section id="other-section" class="hidden">
+            <!-- TRACKER SECTION -->
+            <section id="tracker-section" class="hidden">
                 <div class="section-card">
-                    <h3><i class="fas fa-star"></i> Create Special Event</h3>
-                    <p class="section-hint">Log a trip, party, or project to track separately.</p>
-                    <div class="budget-input-area"
-                        style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
-                        <input type="text" id="eventTitle" placeholder="Event Title"
-                            style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white;">
-                        <input type="date" id="eventDate"
-                            style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white;">
-                        <button onclick="createSpecialEvent()" class="save-btn">Create Event</button>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3><i class="fas fa-search-dollar"></i> Frequent Spends</h3>
+                        <button id="toggleTrackerBtn" class="add-day-btn" onclick="toggleTrackerView()" style="padding: 5px 15px;">View All</button>
+                    </div>
+                    
+                    <div class="budget-input-area" style="margin-top: 15px;">
+                        <input type="text" id="trackerSearch" placeholder="Search expenses by name or category..." oninput="handleTrackerSearch()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334444; background: #0f1717; color: white;">
+                    </div>
+
+                    <p class="section-hint" id="trackerHintText" style="margin-top: 10px;">Showing your top 10 most repeated expenses.</p>
+                    <div id="trackerList" class="stat-grid" style="margin-top: 15px;"></div>
+                </div>
+
+                <div id="trackerDetailCard" class="section-card hidden" style="border-left: 4px solid #a29bfe;">
+                    <h3 id="trackerDetailTitle">Details</h3>
+                    <p id="trackerDetailCategory" style="font-size: 0.8rem; color: #4db6ac; margin-bottom: 10px;"></p>
+                    
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span>Total Spent</span>
+                            <b id="trackerDetailTotal">₹0</b>
+                        </div>
+                        <div class="stat-item">
+                            <span>Frequency</span>
+                            <b id="trackerDetailFreq">0</b>
+                        </div>
+                        <div class="stat-item">
+                            <span>Lowest Spend</span>
+                            <b id="trackerDetailMin">₹0</b>
+                        </div>
+                        <div class="stat-item">
+                            <span>Highest Spend</span>
+                            <b id="trackerDetailMax">₹0</b>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.8rem; opacity: 0.8; margin-top: 15px;">Also matched typos: <span id="trackerDetailSpellings" style="color: #ffdb58;"></span></p>
+                    
+                    <div style="margin-top: 20px; border-top: 1px solid #334444; padding-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <p style="font-size: 0.9rem; opacity: 0.8;"><i class="fas fa-calendar-alt"></i> Purchased Dates:</p>
+                            <input type="month" id="trackerMonthPicker" onchange="loadTrackerCalendarMonth()" style="padding: 5px; border-radius: 5px; border: 1px solid #334444; background: #0f1717; color: white; font-size: 0.8rem;">
+                        </div>
+                        
+                        <div class="calendar-labels" style="grid-template-columns: repeat(7, 1fr); display: grid; text-align: center; font-size: 0.75rem; opacity: 0.7; margin-bottom: 5px;">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                        </div>
+                        <div id="trackerCalendarGrid" class="calendar-grid"></div>
                     </div>
                 </div>
-                <div id="specialEventsContainer"></div>
+            </section>
+
+            <!-- NOTES SECTION -->
+            <section id="notes-section" class="hidden">
+                <div class="section-card">
+                    <h3><i class="fas fa-sticky-note"></i> Daily Notepad</h3>
+                    <p class="section-hint">Jot down thoughts, shopping lists, or details for a specific date.</p>
+                    <div class="budget-input-area" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                        <input type="date" id="noteDate" style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white;">
+                        
+                        <textarea id="noteContent" rows="4" placeholder="Write your note here..." style="padding: 12px; border-radius: 10px; border: 1px solid #334444; background: #0f1717; color: white; resize: vertical; font-family: inherit;"></textarea>
+                        
+                        <button onclick="saveNote()" class="save-btn" style="background: #a29bfe;">Save Note</button>
+                    </div>
+                </div>
+                <div id="notesContainer"></div>
             </section>
 
             <section id="reminders-section" class="hidden">
@@ -252,6 +297,7 @@
         </div>
     </div>
 
+    <!-- DAILY EXPENSE MODAL -->
     <div id="modalOverlay" class="modal-overlay hidden">
         <div class="modal-content daily-modal">
             <div class="modal-header">
@@ -264,7 +310,6 @@
                 <b id="dailyTotalAmount">₹0</b>
             </div>
 
-            <!-- New Listening Indicator Badge -->
             <div id="voiceStatus" class="hidden" style="text-align: center; margin: 10px 0; color: #ff5252; font-weight: bold; font-size: 0.9rem;">
                 <i class="fas fa-circle-notch fa-spin"></i> Listening for spend details...
             </div>
@@ -299,7 +344,6 @@
 
                 <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 15px;">
                     <button id="saveBtn" class="save-btn" onclick="saveExpense()" style="flex: 1;">Save Expense</button>
-                    <!-- Voice Input Button Trigger -->
                     <button id="voiceBtn" class="save-btn" onclick="startVoiceInput()" 
                         style="background: #a29bfe; width: auto; padding: 0 20px;" title="Voice Input">
                         <i class="fas fa-microphone"></i>
@@ -309,28 +353,6 @@
         </div>
     </div>
 
-    <div id="specialExpenseModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 id="specialModalTitle">Add to Event</h3>
-            <p id="specialEventNameLabel"></p>
-
-            <input type="hidden" id="editingSpecialId">
-            <input type="hidden" id="activeEventId">
-
-            <label>Description</label>
-            <input type="text" id="specialDesc" placeholder="Spend Description" style="margin-bottom: 10px;">
-            <label>Amount (₹)</label>
-            <input type="number" id="specialAmt" placeholder="Amount">
-
-            <div class="modal-actions">
-                <button class="cancel-btn" onclick="closeSpecialModal()">Cancel</button>
-                <button class="save-btn" onclick="saveSpecialExpense()">Save Spend</button>
-            </div>
-        </div>
-    </div>
-
-   <script src="script.js?v=2.1"></script>
-   
+   <script src="script.js?v=2.2"></script>
 </body>
-
 </html>

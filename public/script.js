@@ -1,3 +1,4 @@
+// const SERVER_URL = "http://localhost:4000"; 
 const SERVER_URL = "https://spend-smart-server-hyad.onrender.com"; 
 const VAPID_PUBLIC_KEY = "BEG_H6jdabd6m19WgM5G6FSeoI-cTh1c3fWzYsKZDPOsCxCOPBCtTv-YvQOw70c_oj2uTki5Raci0nJnhcxcMQM";
 
@@ -44,11 +45,9 @@ if (SpeechRecognition) {
         const transcript = event.results[0][0].transcript.toLowerCase();
         console.log("Processing Speech:", transcript);
 
-        // --- Multi-Item Splitting Logic ---
-        // Splits by "and" or "comma" to handle multiple items
         const items = transcript.split(/ and |,/); 
         
-        showLoader(); // Show loader during bulk save
+        showLoader(); 
 
         for (let item of items) {
             const amountMatch = item.match(/\d+/);
@@ -63,13 +62,9 @@ if (SpeechRecognition) {
                         break;
                     }
                 }
-
-                // Call the silent save function for each item
                 await silentSaveExpense(description, amount, category);
             }
         }
-
-        // Final Refresh
         await loadExpenses();
         openModal(currentSelectedDate);
         stopVoiceUI();
@@ -80,7 +75,6 @@ if (SpeechRecognition) {
     recognition.onend = () => stopVoiceUI();
 }
 
-// Helper to save without closing modal or alerts
 async function silentSaveExpense(desc, amt, cat) {
     const payload = { 
         user_id: getUserId(), 
@@ -112,21 +106,12 @@ function stopVoiceUI() {
 
 const monthPicker = document.getElementById('monthPicker');
 const calendarGrid = document.getElementById('calendarGrid');
-
 const getUserId = () => localStorage.getItem("user_id");
 
-// --- UI Helpers ---
+function showLoader() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function hideLoader() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
-function showLoader() {
-    document.getElementById('loadingOverlay').classList.remove('hidden');
-}
-
-function hideLoader() {
-    document.getElementById('loadingOverlay').classList.add('hidden');
-}
-
-// --- Core Expense Functions ---
-
+// --- CORE EXPENSE & DASHBOARD ---
 async function loadExpenses() {
     const userId = getUserId();
     const selectedMonth = monthPicker.value;
@@ -202,164 +187,7 @@ function renderHomeCalendar(data, selectedMonth) {
     applySavedTheme();
 }
 
-async function downloadPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const monthName = document.getElementById('headerMonthName').innerText;
-    const totalAmountStr = document.getElementById('totalAmount').innerText;
-    const totalAmountNum = parseFloat(totalAmountStr.replace('₹', ''));
-
-    doc.setFontSize(22);
-    doc.setTextColor(77, 182, 172); 
-    doc.text("Spend Smart Report", 14, 20);
-    
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text(`Period: ${monthName}`, 14, 30);
-
-    const sortedData = [...currentMonthData].sort((a, b) => new Date(a.date) - new Date(b.date));
-    const tableRows = [];
-    let dailyTotals = {};
-
-    sortedData.forEach(exp => {
-        const dateStr = exp.date.split('T')[0];
-        tableRows.push([dateStr, exp.description, exp.category, `Rs. ${exp.amount}`]);
-        dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + parseFloat(exp.amount);
-    });
-
-    doc.autoTable({
-        startY: 40,
-        head: [['Date', 'Description', 'Category', 'Amount']],
-        body: tableRows,
-        theme: 'striped',
-        headStyles: { fillColor: [77, 182, 172] },
-        styles: { fontSize: 10 }
-    });
-
-    const finalY = doc.lastAutoTable.finalY + 15;
-    const daysInMonthNum = new Date(monthPicker.value.split('-')[0], monthPicker.value.split('-')[1], 0).getDate();
-    const average = (totalAmountNum / daysInMonthNum).toFixed(2);
-
-    doc.setFont("helvetica", "bold");
-    doc.text("Monthly Summary", 14, finalY);
-
-    const summaryData = [
-        ["Total Monthly Spend:", `Rs. ${totalAmountNum.toFixed(2)}`],
-        ["Daily Average:", `Rs. ${average}`],
-        ["Highest Daily Spend:", `Rs. ${Math.max(...Object.values(dailyTotals), 0).toFixed(2)}`]
-    ];
-
-    doc.autoTable({
-        startY: finalY + 5,
-        body: summaryData,
-        theme: 'plain',
-        styles: { fontSize: 11, fontStyle: 'bold', font: 'helvetica' },
-        columnStyles: { 0: { cellWidth: 50 } }
-    });
-
-    const breakdownY = doc.lastAutoTable.finalY + 15;
-    doc.text("Daily Totals Breakdown", 14, breakdownY);
-    
-    const dailyBreakdownRows = Object.keys(dailyTotals).map(date => [date, `Rs. ${dailyTotals[date].toFixed(2)}`]);
-
-    doc.autoTable({
-        startY: breakdownY + 5,
-        head: [['Date', 'Total Spent']],
-        body: dailyBreakdownRows,
-        theme: 'grid',
-        headStyles: { fillColor: [162, 155, 254] },
-        margin: { left: 14, right: 100 }
-    });
-
-    doc.save(`SpendSmart_${monthName.replace(' ', '_')}.pdf`);
-}
-
-async function downloadWeeklyPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    const dateInput = document.getElementById('reportStartDate').value;
-    let startOfWeek;
-
-    if (dateInput) {
-        startOfWeek = new Date(dateInput);
-    } else {
-        const now = new Date();
-        startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay());
-    }
-    
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-    
-    const dateRangeStr = `${startOfWeek.toLocaleDateString('en-IN')} - ${endOfWeek.toLocaleDateString('en-IN')}`;
-
-    const weeklyData = currentMonthData.filter(exp => {
-        const expDate = new Date(exp.date);
-        return expDate >= startOfWeek && expDate <= endOfWeek;
-    });
-
-    if (weeklyData.length === 0) {
-        return Swal.fire("No Data", "No expenses found for the selected range: " + dateRangeStr, "warning");
-    }
-
-    showLoader();
-
-    try {
-        doc.setFontSize(22);
-        doc.setTextColor(77, 182, 172); 
-        doc.text("Weekly Spend Smart Report", 14, 20);
-        
-        doc.setFontSize(12);
-        doc.setTextColor(100);
-        doc.text(`Custom Range: ${dateRangeStr}`, 14, 30);
-
-        const tableRows = weeklyData.sort((a,b) => new Date(a.date) - new Date(b.date)).map(exp => [
-            exp.date.split('T')[0],
-            exp.description,
-            exp.category,
-            `Rs. ${parseFloat(exp.amount).toFixed(2)}`
-        ]);
-
-        doc.autoTable({
-            startY: 40,
-            head: [['Date', 'Description', 'Category', 'Amount']],
-            body: tableRows,
-            theme: 'striped',
-            headStyles: { fillColor: [77, 182, 172] }
-        });
-
-        const weeklyTotal = weeklyData.reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
-        const finalY = doc.lastAutoTable.finalY + 15;
-
-        doc.setFont("helvetica", "bold");
-        doc.text("Period Summary", 14, finalY);
-
-        const summaryData = [
-            ["Total Spend for Period:", `Rs. ${weeklyTotal.toFixed(2)}`],
-            ["Items Logged:", weeklyData.length.toString()],
-            ["Avg. Daily Spend:", `Rs. ${(weeklyTotal / 7).toFixed(2)}`]
-        ];
-
-        doc.autoTable({
-            startY: finalY + 5,
-            body: summaryData,
-            theme: 'plain',
-            styles: { fontSize: 11, fontStyle: 'bold', font: 'helvetica' },
-            columnStyles: { 0: { cellWidth: 50 } }
-        });
-
-        doc.save(`Weekly_Report_${startOfWeek.toISOString().split('T')[0]}.pdf`);
-    } catch (e) {
-        console.error("PDF Error:", e);
-    } finally {
-        hideLoader();
-    }
-}
-
+// --- ANALYSIS & CHARTS ---
 function renderAnalysis(data, budget) {
     let monthTotal = 0;
     let highestDaily = 0;
@@ -452,172 +280,6 @@ async function updateBudget() {
     hideLoader();
 }
 
-async function createSpecialEvent() {
-    const title = document.getElementById('eventTitle').value;
-    const date = document.getElementById('eventDate').value;
-    const userId = getUserId();
-
-    if (!title || !date) return Swal.fire("Input Missing", "Please provide both a title and a date.", "warning");
-
-    showLoader();
-    try {
-        const res = await fetch(`${SERVER_URL}/api/special-events`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, title: title, event_date: date })
-        });
-
-        if (res.ok) {
-            document.getElementById('eventTitle').value = "";
-            document.getElementById('eventDate').value = "";
-            await loadSpecialEvents(); 
-        }
-    } catch (e) { console.error(e); }
-    finally { hideLoader(); }
-}
-
-async function loadSpecialEvents() {
-    const userId = getUserId();
-    if (!userId) return;
-
-    showLoader();
-    try {
-        const res = await fetch(`${SERVER_URL}/api/special-events/${userId}`);
-        const events = await res.json();
-        const container = document.getElementById('specialEventsContainer');
-        container.innerHTML = "";
-
-        const eventDataPromises = events.map(async (event) => {
-            const dataRes = await fetch(`${SERVER_URL}/api/special-event-data/${event.id}`);
-            const { items, total } = await dataRes.json();
-            
-            return `
-                <div class="section-card" style="border-left: 4px solid #ffdb58; margin-top: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                        <div>
-                            <h4 style="margin: 0;">${event.title}</h4>
-                            <small style="opacity: 0.7;">Created: ${event.event_date}</small>
-                        </div>
-                        <div style="display: flex; gap: 12px;">
-                            <button class="add-day-btn" onclick="openSpecialModal('${event.id}', '${event.title}')" style="padding: 5px 12px;">+ Add</button>
-                            <button onclick="deleteSpecialEvent(${event.id})" style="color:#ff5252; background:none; border:none; cursor:pointer; font-size: 1.1rem; padding: 5px;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="event-items-list">
-                        ${items.length > 0 ? items.map(item => `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #33444455;">
-                                <span>${item.description}</span>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <b>₹${item.amount}</b>
-                                    <button class="edit-icon" onclick="editSpecialExpense('${item.id}', '${item.description}', ${item.amount}, '${event.id}', '${event.title}')" style="background:none; border:none; color:#4db6ac; padding: 5px;"><i class="fas fa-edit"></i></button>
-                                    <button class="delete-icon" onclick="deleteSpecialExpense(${item.id})" style="background:none; border:none; color:#ff5252; padding: 5px;"><i class="fas fa-trash"></i></button>
-                                </div>
-                            </div>`).join('') : '<p style="text-align:center; opacity:0.5; font-size:0.8rem;">No spends added yet.</p>'}
-                    </div>
-                    <div style="text-align: right; margin-top: 12px; font-size: 1rem;">
-                        Total Event Spend: <b style="color: #ffdb58;">₹${total}</b>
-                    </div>
-                </div>`;
-        });
-
-        const eventHtmlArray = await Promise.all(eventDataPromises);
-        container.innerHTML = eventHtmlArray.join('');
-    } catch (e) {
-        console.error("Error loading special events:", e);
-    } finally {
-        hideLoader();
-        applySavedTheme();
-    }
-}
-
-async function deleteSpecialEvent(eventId) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "Delete entire event?",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            showLoader();
-            const res = await fetch(`${SERVER_URL}/api/special-events/${eventId}`, { method: 'DELETE' });
-            if (res.ok) await loadSpecialEvents();
-            hideLoader();
-        }
-    });
-}
-
-async function deleteSpecialExpense(itemId) {
-    Swal.fire({
-        title: 'Remove item?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, remove it!'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            showLoader();
-            const res = await fetch(`${SERVER_URL}/api/special-event-spends/${itemId}`, { method: 'DELETE' });
-            if (res.ok) await loadSpecialEvents();
-            hideLoader();
-        }
-    });
-}
-
-function openSpecialModal(eventId, eventTitle) {
-    document.getElementById('activeEventId').value = eventId;
-    document.getElementById('editingSpecialId').value = ""; 
-    document.getElementById('specialModalTitle').innerText = "Add Spend";
-    document.getElementById('specialEventNameLabel').innerText = `To: ${eventTitle}`;
-    document.getElementById('specialDesc').value = "";
-    document.getElementById('specialAmt').value = "";
-    document.getElementById('specialExpenseModal').classList.remove('hidden');
-}
-
-function editSpecialExpense(itemId, desc, amt, eventId, eventTitle) {
-    document.getElementById('activeEventId').value = eventId;
-    document.getElementById('editingSpecialId').value = itemId;
-    document.getElementById('specialDesc').value = desc;
-    document.getElementById('specialAmt').value = amt;
-    document.getElementById('specialModalTitle').innerText = "Edit Spend";
-    document.getElementById('specialEventNameLabel').innerText = `Editing in: ${eventTitle}`;
-    document.getElementById('specialExpenseModal').classList.remove('hidden');
-}
-
-async function saveSpecialExpense() {
-    const event_id = document.getElementById('activeEventId').value;
-    const editId = document.getElementById('editingSpecialId').value;
-    const description = document.getElementById('specialDesc').value;
-    const amount = document.getElementById('specialAmt').value;
-
-    if (!description || !amount) return Swal.fire("Required", "Please fill all fields", "info");
-
-    showLoader();
-    const method = editId ? 'PUT' : 'POST';
-    const url = editId ? `${SERVER_URL}/api/special-event-spends/${editId}` : `${SERVER_URL}/api/special-event-spends`;
-
-    try {
-        const res = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ event_id, description, amount })
-        });
-        if (res.ok) {
-            closeSpecialModal();
-            await loadSpecialEvents();
-        }
-    } finally {
-        hideLoader();
-    }
-}
-
-function closeSpecialModal() { document.getElementById('specialExpenseModal').classList.add('hidden'); }
-
 function initWeeklyChart(weeklyData) {
     const ctx = document.getElementById('weeklyChart').getContext('2d');
     if (weeklyChart) weeklyChart.destroy();
@@ -652,6 +314,148 @@ function generateAdvice(spent, budget, categories) {
     else adviceText.innerText = "✅ Great job! You are within limits.";
 }
 
+// --- PDF DOWNLOADS ---
+async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const monthName = document.getElementById('headerMonthName').innerText;
+    const totalAmountStr = document.getElementById('totalAmount').innerText;
+    const totalAmountNum = parseFloat(totalAmountStr.replace('₹', ''));
+
+    doc.setFontSize(22);
+    doc.setTextColor(77, 182, 172); 
+    doc.text("Spend Smart Report", 14, 20);
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Period: ${monthName}`, 14, 30);
+
+    const sortedData = [...currentMonthData].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const tableRows = [];
+    let dailyTotals = {};
+
+    sortedData.forEach(exp => {
+        const dateStr = exp.date.split('T')[0];
+        tableRows.push([dateStr, exp.description, exp.category, `Rs. ${exp.amount}`]);
+        dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + parseFloat(exp.amount);
+    });
+
+    doc.autoTable({
+        startY: 40,
+        head: [['Date', 'Description', 'Category', 'Amount']],
+        body: tableRows,
+        theme: 'striped',
+        headStyles: { fillColor: [77, 182, 172] },
+        styles: { fontSize: 10 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 15;
+    const daysInMonthNum = new Date(monthPicker.value.split('-')[0], monthPicker.value.split('-')[1], 0).getDate();
+    const average = (totalAmountNum / daysInMonthNum).toFixed(2);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Monthly Summary", 14, finalY);
+
+    const summaryData = [
+        ["Total Monthly Spend:", `Rs. ${totalAmountNum.toFixed(2)}`],
+        ["Daily Average:", `Rs. ${average}`],
+        ["Highest Daily Spend:", `Rs. ${Math.max(...Object.values(dailyTotals), 0).toFixed(2)}`]
+    ];
+
+    doc.autoTable({
+        startY: finalY + 5,
+        body: summaryData,
+        theme: 'plain',
+        styles: { fontSize: 11, fontStyle: 'bold', font: 'helvetica' },
+        columnStyles: { 0: { cellWidth: 50 } }
+    });
+
+    doc.save(`SpendSmart_${monthName.replace(' ', '_')}.pdf`);
+}
+
+async function downloadWeeklyPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const dateInput = document.getElementById('reportStartDate').value;
+    let startOfWeek;
+
+    if (dateInput) {
+        startOfWeek = new Date(dateInput);
+    } else {
+        const now = new Date();
+        startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+    }
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    const dateRangeStr = `${startOfWeek.toLocaleDateString('en-IN')} - ${endOfWeek.toLocaleDateString('en-IN')}`;
+
+    const weeklyData = currentMonthData.filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate >= startOfWeek && expDate <= endOfWeek;
+    });
+
+    if (weeklyData.length === 0) {
+        return Swal.fire("No Data", "No expenses found for the selected range: " + dateRangeStr, "warning");
+    }
+
+    showLoader();
+
+    try {
+        doc.setFontSize(22);
+        doc.setTextColor(77, 182, 172); 
+        doc.text("Weekly Spend Smart Report", 14, 20);
+        doc.setFontSize(12);
+        doc.setTextColor(100);
+        doc.text(`Custom Range: ${dateRangeStr}`, 14, 30);
+
+        const tableRows = weeklyData.sort((a,b) => new Date(a.date) - new Date(b.date)).map(exp => [
+            exp.date.split('T')[0],
+            exp.description,
+            exp.category,
+            `Rs. ${parseFloat(exp.amount).toFixed(2)}`
+        ]);
+
+        doc.autoTable({
+            startY: 40,
+            head: [['Date', 'Description', 'Category', 'Amount']],
+            body: tableRows,
+            theme: 'striped',
+            headStyles: { fillColor: [77, 182, 172] }
+        });
+
+        const weeklyTotal = weeklyData.reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+        const finalY = doc.lastAutoTable.finalY + 15;
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Period Summary", 14, finalY);
+
+        const summaryData = [
+            ["Total Spend for Period:", `Rs. ${weeklyTotal.toFixed(2)}`],
+            ["Items Logged:", weeklyData.length.toString()],
+            ["Avg. Daily Spend:", `Rs. ${(weeklyTotal / 7).toFixed(2)}`]
+        ];
+
+        doc.autoTable({
+            startY: finalY + 5,
+            body: summaryData,
+            theme: 'plain',
+            styles: { fontSize: 11, fontStyle: 'bold', font: 'helvetica' },
+            columnStyles: { 0: { cellWidth: 50 } }
+        });
+
+        doc.save(`Weekly_Report_${startOfWeek.toISOString().split('T')[0]}.pdf`);
+    } catch (e) {
+        console.error("PDF Error:", e);
+    } finally {
+        hideLoader();
+    }
+}
+
+// --- THEMES ---
 function applyTextStyles(color) {
     if (!color) return;
     document.documentElement.style.setProperty('--user-text-color', color);
@@ -688,12 +492,16 @@ function applySavedTheme() {
     if (bgType && bgValue) changeBg(bgType, bgValue);
 }
 
+// --- NAVIGATION ---
 function showSection(sectionId) {
     document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
     document.getElementById(`${sectionId}-section`).classList.remove('hidden');
     document.getElementById('home-header').classList.toggle('hidden', sectionId !== 'home');
-    if (sectionId === 'other') loadSpecialEvents();
+    
+    if (sectionId === 'notes') loadNotes(); 
+    if (sectionId === 'tracker') loadTracker();
     if (sectionId === 'reminders') { loadReminders(); subscribeToPush(); }
+    
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('onclick').includes(sectionId));
     });
@@ -709,11 +517,8 @@ function toggleProfileMenu() {
 function openThemeModal() { document.getElementById('themeModal').classList.remove('hidden'); }
 function closeThemeModal() { document.getElementById('themeModal').classList.add('hidden'); }
 function logout() { localStorage.clear(); window.location.href = "login.html"; }
-function updateAutocomplete() {
-    const list = document.getElementById('recentDescriptions');
-    if (list) list.innerHTML = Array.from(recentDescriptions).map(d => `<option value="${d}">`).join('');
-}
 
+// --- REMINDERS ---
 async function loadReminders() {
     const container = document.getElementById('reminderListContainer');
     if (!container) return;
@@ -790,6 +595,12 @@ function urlBase64ToUint8Array(base64String) {
     return outputArray;
 }
 
+// --- DAILY ENTRY MODALS ---
+function updateAutocomplete() {
+    const list = document.getElementById('recentDescriptions');
+    if (list) list.innerHTML = Array.from(recentDescriptions).map(d => `<option value="${d}">`).join('');
+}
+
 function openModal(date) {
     currentSelectedDate = date;
     document.getElementById('editingExpenseId').value = "";
@@ -828,7 +639,19 @@ async function saveExpense() {
     if (res.ok) { 
         document.getElementById('desc').value = "";
         document.getElementById('amt').value = "";
-        await loadExpenses();
+        
+        await loadExpenses(); 
+        
+        if (!document.getElementById('tracker-section').classList.contains('hidden')) {
+            await loadTracker();
+            if (currentTrackerItem) {
+                await loadTrackerCalendarMonth();
+                openTrackerDayModal(currentSelectedDate);
+                hideLoader();
+                return;
+            }
+        }
+        
         openModal(currentSelectedDate);
     }
     hideLoader();
@@ -854,23 +677,312 @@ async function deleteExpense(id) {
         if (result.isConfirmed) {
             showLoader();
             const res = await fetch(`${SERVER_URL}/api/expenses/${id}`, { method: 'DELETE' });
-            if(res.ok) { await loadExpenses(); openModal(currentSelectedDate); }
+            if(res.ok) { 
+                await loadExpenses(); 
+                
+                if (!document.getElementById('tracker-section').classList.contains('hidden')) {
+                    await loadTracker();
+                    if (currentTrackerItem) {
+                        await loadTrackerCalendarMonth();
+                        openTrackerDayModal(currentSelectedDate);
+                        hideLoader();
+                        return;
+                    }
+                }
+                openModal(currentSelectedDate); 
+            }
             hideLoader();
         }
     });
 }
 
+// --- TRACKER FUNCTIONS ---
+let allTrackerData = [];
+let showingAllTracker = false;
+let trackerSearchQuery = "";
+let currentTrackerItem = null;
+let trackerMonthData = []; 
+
+async function loadTracker() {
+    const userId = getUserId();
+    if (!userId) return;
+
+    showLoader();
+    try {
+        const res = await fetch(`${SERVER_URL}/api/tracker/${userId}`);
+        allTrackerData = await res.json();
+        renderTrackerList(); 
+    } catch (e) {
+        console.error("Tracker Load Error:", e);
+    } finally {
+        hideLoader();
+    }
+}
+
+function handleTrackerSearch() {
+    trackerSearchQuery = document.getElementById('trackerSearch').value.toLowerCase();
+    renderTrackerList();
+}
+
+function renderTrackerList() {
+    const listContainer = document.getElementById('trackerList');
+    const hintText = document.getElementById('trackerHintText');
+    const toggleBtn = document.getElementById('toggleTrackerBtn');
+    
+    if(!listContainer) return;
+    listContainer.innerHTML = "";
+
+    let filteredData = allTrackerData.filter(item => 
+        item.description.toLowerCase().includes(trackerSearchQuery) || 
+        item.category.toLowerCase().includes(trackerSearchQuery)
+    );
+
+    const displayData = showingAllTracker ? filteredData : filteredData.slice(0, 10);
+    
+    hintText.innerText = showingAllTracker ? `Showing all ${filteredData.length} unique expenses.` : "Showing your top 10 most repeated expenses.";
+    toggleBtn.innerText = showingAllTracker ? "Show Top 10" : "View All";
+
+    displayData.forEach((item, index) => {
+        const itemData = encodeURIComponent(JSON.stringify(item));
+        
+        listContainer.innerHTML += `
+            <div class="stat-item" style="cursor: pointer; border: 1px solid #334444; text-align: left;" onclick="viewTrackerDetail('${itemData}')">
+                <span style="font-size: 1rem; color: #fff; display: block; font-weight: bold;">${index + 1}. ${item.description}</span>
+                <span style="font-size: 0.75rem; color: #889999;">${item.category}</span>
+                <b style="color: #4db6ac; display: block; margin-top: 5px;">${item.frequency} times</b>
+            </div>
+        `;
+    });
+}
+
+function toggleTrackerView() {
+    showingAllTracker = !showingAllTracker;
+    renderTrackerList();
+}
+
+function viewTrackerDetail(encodedData) {
+    currentTrackerItem = JSON.parse(decodeURIComponent(encodedData));
+    
+    const detailCard = document.getElementById('trackerDetailCard');
+    if(detailCard) {
+        detailCard.classList.remove('hidden');
+        document.getElementById('trackerDetailTitle').innerText = currentTrackerItem.description.toUpperCase();
+        document.getElementById('trackerDetailCategory').innerText = `< ${currentTrackerItem.category} >`;
+        
+        document.getElementById('trackerDetailTotal').innerText = `₹${currentTrackerItem.totalAmount.toFixed(2)}`;
+        document.getElementById('trackerDetailFreq').innerText = `${currentTrackerItem.frequency} in ${currentTrackerItem.monthsAppeared} months`;
+        document.getElementById('trackerDetailMin').innerText = `₹${currentTrackerItem.minSpend.toFixed(2)}`;
+        document.getElementById('trackerDetailMax').innerText = `₹${currentTrackerItem.maxSpend.toFixed(2)}`;
+        document.getElementById('trackerDetailSpellings').innerText = currentTrackerItem.spellingsFound;
+        
+        if (currentTrackerItem.dates.length > 0) {
+            document.getElementById('trackerMonthPicker').value = currentTrackerItem.dates[0].substring(0, 7);
+        } else {
+            const now = new Date();
+            document.getElementById('trackerMonthPicker').value = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+        }
+
+        loadTrackerCalendarMonth();
+        detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+async function loadTrackerCalendarMonth() {
+    const userId = getUserId();
+    const selectedMonth = document.getElementById('trackerMonthPicker').value;
+    if (!userId || !selectedMonth) return;
+
+    showLoader();
+    try {
+        const res = await fetch(`${SERVER_URL}/api/expenses/${userId}/${selectedMonth}`);
+        trackerMonthData = res.ok ? await res.json() : [];
+        renderTrackerCalendar(selectedMonth);
+    } catch (e) {
+        console.error("Tracker Calendar Error:", e);
+    } finally {
+        hideLoader();
+    }
+}
+
+function renderTrackerCalendar(selectedMonth) {
+    const grid = document.getElementById('trackerCalendarGrid');
+    if (!grid) return;
+
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1).getDay(); 
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const purchasedDates = new Set(currentTrackerItem.dates);
+
+    let html = "";
+    for (let i = 0; i < firstDay; i++) {
+        html += `<div class="calendar-day empty"></div>`;
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dayDate = new Date(year, month - 1, d);
+        const dateStr = `${year}-${month.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+        const isFuture = dayDate > today;
+        const isToday = dayDate.getTime() === today.getTime();
+        
+        const isPurchased = purchasedDates.has(dateStr);
+        
+        const style = isPurchased ? `border: 2px solid #ffdb58; background: rgba(255, 219, 88, 0.15); box-shadow: inset 0 0 10px rgba(255, 219, 88, 0.2);` : ``;
+
+        html += `
+            <div class="calendar-day ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}" 
+                 style="${style}"
+                 onclick="${isFuture ? '' : `openTrackerDayModal('${dateStr}')`}">
+                <span class="day-number" style="${isPurchased ? 'color: #ffdb58; font-weight: bold;' : ''}">${d}</span>
+                ${isPurchased ? `<span class="day-spend-hint" style="color: #ffdb58;"><i class="fas fa-check"></i></span>` : ''}
+            </div>`;
+    }
+    
+    grid.innerHTML = html;
+}
+
+function openTrackerDayModal(dateStr) {
+    currentSelectedDate = dateStr;
+    document.getElementById('editingExpenseId').value = "";
+    document.getElementById('saveBtn').innerText = "Save Expense";
+    document.getElementById('selectedDateLabel').innerText = new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    
+    const dayExpenses = trackerMonthData.filter(exp => (exp.date.includes('T') ? exp.date.split('T')[0] : exp.date) === dateStr);
+    const listContainer = document.getElementById('dailyEntryList');
+    let total = 0;
+    
+    listContainer.innerHTML = dayExpenses.length ? "" : "<p style='text-align:center; opacity:0.5;'>No entries.</p>";
+    
+    dayExpenses.forEach(exp => {
+        total += parseFloat(exp.amount);
+        
+        const isTrackedItem = currentTrackerItem.spellingsFound.includes(exp.description.toLowerCase().trim());
+        const itemStyle = isTrackedItem ? "border-left: 3px solid #ffdb58; padding-left: 10px; background: rgba(255, 219, 88, 0.1);" : "";
+
+        listContainer.innerHTML += `
+            <div class="entry-item" style="${itemStyle}">
+                <div style="display:flex; flex-direction:column;">
+                    <b>${exp.description} ${isTrackedItem ? '<i class="fas fa-star" style="color: #ffdb58; font-size: 0.7rem; margin-left: 5px;"></i>' : ''}</b>
+                    <small>${exp.category}</small>
+                </div>
+                <div class="entry-actions">
+                    <span style="margin-right:10px;">₹${exp.amount}</span>
+                    <button class="edit-icon" onclick="editExpense('${exp.id}', '${exp.description}', ${exp.amount}, '${exp.category}')"><i class="fas fa-edit"></i></button>
+                    <button class="delete-icon" onclick="deleteExpense('${exp.id}')"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>`;
+    });
+    
+    document.getElementById('dailyTotalAmount').innerText = `₹${total}`;
+    document.getElementById('modalOverlay').classList.remove('hidden');
+    applySavedTheme();
+}
+
+// --- NOTES (DAILY NOTEPAD) ---
+async function loadNotes() {
+    const userId = getUserId();
+    if (!userId) return;
+
+    showLoader();
+    try {
+        const res = await fetch(`${SERVER_URL}/api/notes/${userId}`);
+        const notes = await res.json();
+        const container = document.getElementById('notesContainer');
+        container.innerHTML = "";
+
+        if (notes.length === 0) {
+            container.innerHTML = "<p style='text-align:center; opacity:0.5; margin-top: 20px;'>No notes found.</p>";
+            return;
+        }
+
+        notes.forEach(note => {
+            const displayContent = note.content.replace(/\n/g, '<br>');
+            
+            container.innerHTML += `
+                <div class="section-card" style="border-left: 4px solid #a29bfe; margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                        <h4 style="margin: 0; color: #a29bfe;"><i class="fas fa-calendar-day"></i> ${note.date}</h4>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="editNote('${note.date}', \`${note.content.replace(/`/g, '\\`')}\`)" style="color:#4db6ac; background:none; border:none; cursor:pointer;" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteNote(${note.id})" style="color:#ff5252; background:none; border:none; cursor:pointer;" title="Delete"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.95rem; line-height: 1.5; margin: 0; color: var(--user-text-color, #fff);">${displayContent}</p>
+                </div>
+            `;
+        });
+    } catch (e) {
+        console.error("Error loading notes:", e);
+    } finally {
+        hideLoader();
+        applySavedTheme();
+    }
+}
+
+async function saveNote() {
+    const date = document.getElementById('noteDate').value;
+    const content = document.getElementById('noteContent').value;
+    const userId = getUserId();
+
+    if (!date || !content.trim()) {
+        return Swal.fire("Input Missing", "Please select a date and write a note.", "warning");
+    }
+
+    showLoader();
+    try {
+        const res = await fetch(`${SERVER_URL}/api/notes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, date: date, content: content.trim() })
+        });
+
+        if (res.ok) {
+            document.getElementById('noteDate').value = "";
+            document.getElementById('noteContent').value = "";
+            await loadNotes();
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        hideLoader();
+    }
+}
+
+function editNote(date, content) {
+    document.getElementById('noteDate').value = date;
+    document.getElementById('noteContent').value = content;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function deleteNote(noteId) {
+    Swal.fire({
+        title: 'Delete Note?',
+        text: "This action cannot be undone.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            showLoader();
+            const res = await fetch(`${SERVER_URL}/api/notes/${noteId}`, { method: 'DELETE' });
+            if (res.ok) await loadNotes();
+            hideLoader();
+        }
+    });
+}
+
+// --- INITIALIZATION ---
 monthPicker.addEventListener('change', loadExpenses);
 
 document.addEventListener('DOMContentLoaded', () => { 
-    // Automatically set the picker to the current year and month[cite: 1]
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
-    
-    if (monthPicker) {
-        monthPicker.value = currentMonth;
-    }
-
+    if (monthPicker) monthPicker.value = currentMonth;
     loadExpenses(); 
     applySavedTheme(); 
 });
@@ -879,17 +991,12 @@ window.onload = () => applySavedTheme();
 
 if ('serviceWorker' in navigator) { 
     navigator.serviceWorker.register('sw.js').catch(err => console.log(err)); 
-
-    navigator.serviceWorker.ready.then((registration) => {
-        registration.update(); // Force checks for a new sw.js on every load
-    });
-
-    // Handle the controller change (when the new SW takes over)
+    navigator.serviceWorker.ready.then((registration) => { registration.update(); });
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!refreshing) {
             refreshing = true;
-            window.location.reload(); // Automatically reloads the page to show the new UI
+            window.location.reload(); 
         }
     });
 }
