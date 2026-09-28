@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.static("public"));
 
 // ✅ Route for Cron-job.org to hit
-app.get("/", (req, res) => {
+app.get("/api/ping", (req, res) => {
   console.log(`[${new Date().toLocaleTimeString()}] 💓 Heartbeat: Cron-job.org kept me awake!`);
   res.status(200).send("SpendSmart Backend is Awake!");
 });
