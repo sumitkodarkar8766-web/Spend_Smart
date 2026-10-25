@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spend Smart</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -379,7 +379,6 @@
 
    <!-- Calculator Modal -->
     <div id="calculatorModal" class="calc-modal hidden">
-        <!-- The header acts as the drag handle -->
         <div id="calcHeader" class="calc-header">
             <h4><i class="fas fa-grip-lines"></i> Calculator</h4>
             <button onclick="toggleCalculator()" class="close-calc">&times;</button>
@@ -388,6 +387,7 @@
             <input type="text" id="calcInput" readonly placeholder="0">
         </div>
         <div class="calc-keys">
+            <!-- Your existing calculator buttons go here -->
             <button onclick="calcClear()" style="color: #ff5252; background: rgba(255, 82, 82, 0.1);">C</button>
             <button onclick="calcAppend('/')" class="op-btn">&divide;</button>
             <button onclick="calcAppend('*')" class="op-btn">&times;</button>
@@ -408,9 +408,11 @@
             <button onclick="calcAppend('3')">3</button>
             <button onclick="calcCalculate()" class="calc-equal" rowspan="2">=</button>
             
-            <button onclick="calcAppend('0')" style="grid-column: span 2; border-radius: 12px;">0</button>
+            <button onclick="calcAppend('0')" style="grid-column: span 2;">0</button>
             <button onclick="calcAppend('.')">.</button>
         </div>
+        <!-- Add this new resize handle -->
+        <div id="calcResizer" class="calc-resizer"></div>
     </div>
 
    <script src="script.js"></script>

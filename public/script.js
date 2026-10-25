@@ -1102,56 +1102,65 @@ function saveGlobalDailyLimit() {
     }
     loadExpenses(); // Refresh the calendar to apply the borders
 }
-// --- DRAGGABLE CALCULATOR LOGIC ---
-function makeDraggable(modalId, headerId) {
+// --- RESIZABLE CALCULATOR LOGIC ---
+function makeResizable(modalId, resizerId) {
     const modal = document.getElementById(modalId);
-    const header = document.getElementById(headerId);
-    let isDown = false;
-    let offset = [0, 0];
+    const resizer = document.getElementById(resizerId);
+    let isResizing = false;
+    let startX, startY, startWidth, startHeight;
 
-    // Mouse Events for PC
-    header.addEventListener('mousedown', function(e) {
-        if(e.target.tagName.toLowerCase() === 'button') return; // Don't drag if clicking X
-        isDown = true;
-        offset = [modal.offsetLeft - e.clientX, modal.offsetTop - e.clientY];
+    function startResize(e) {
+        isResizing = true;
+        e.preventDefault();
         
-        // Remove bottom/right constraints so left/top can take over
-        modal.style.bottom = 'auto';
-        modal.style.right = 'auto';
-    }, true);
-
-    document.addEventListener('mouseup', () => isDown = false, true);
-
-    document.addEventListener('mousemove', function(e) {
-        if (isDown) {
-            e.preventDefault();
-            modal.style.left = (e.clientX + offset[0]) + 'px';
-            modal.style.top  = (e.clientY + offset[1]) + 'px';
-        }
-    }, true);
-
-    // Touch Events for Mobile
-    header.addEventListener('touchstart', function(e) {
-        if(e.target.tagName.toLowerCase() === 'button') return;
-        isDown = true;
-        offset = [modal.offsetLeft - e.touches[0].clientX, modal.offsetTop - e.touches[0].clientY];
+        // Get initial touch/mouse position
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        modal.style.bottom = 'auto';
+        startX = clientX;
+        startY = clientY;
+        
+        // Get current computed width/height
+        startWidth = parseInt(document.defaultView.getComputedStyle(modal).width, 10);
+        startHeight = parseInt(document.defaultView.getComputedStyle(modal).height, 10);
+        
+        // Lock left and top anchors while resizing so it expands down/right
         modal.style.right = 'auto';
-    }, {passive: false});
+        modal.style.bottom = 'auto';
+    }
 
-    document.addEventListener('touchend', () => isDown = false, true);
+    function doResize(e) {
+        if (!isResizing) return;
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        // Calculate new dimensions
+        const newWidth = startWidth + (clientX - startX);
+        const newHeight = startHeight + (clientY - startY);
+        
+        // Apply dimensions (CSS min-width/min-height will constrain limits)
+        modal.style.width = newWidth + 'px';
+        modal.style.height = newHeight + 'px';
+    }
 
-    document.addEventListener('touchmove', function(e) {
-        if (isDown) {
-            e.preventDefault(); // Stop screen from scrolling while dragging
-            modal.style.left = (e.touches[0].clientX + offset[0]) + 'px';
-            modal.style.top  = (e.touches[0].clientY + offset[1]) + 'px';
-        }
-    }, {passive: false});
+    function stopResize() {
+        isResizing = false;
+    }
+
+    // Attach mouse events
+    resizer.addEventListener('mousedown', startResize, false);
+    document.addEventListener('mousemove', doResize, false);
+    document.addEventListener('mouseup', stopResize, false);
+
+    // Attach touch events for mobile
+    resizer.addEventListener('touchstart', startResize, {passive: false});
+    document.addEventListener('touchmove', doResize, {passive: false});
+    document.addEventListener('touchend', stopResize, false);
 }
 
-// Initialize the drag behavior when the script loads
+// Update your initialization block at the bottom of script.js to call both functions
 document.addEventListener('DOMContentLoaded', () => {
     makeDraggable('calculatorModal', 'calcHeader');
+    makeResizable('calculatorModal', 'calcResizer');
 });
