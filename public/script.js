@@ -1029,7 +1029,6 @@ function initCalculatorFeatures() {
         localStorage.setItem('calcSavedState', JSON.stringify(state));
     }
 
-    // Apply saved size and position immediately when opened
     const savedState = JSON.parse(localStorage.getItem('calcSavedState'));
     if (savedState) {
         if (savedState.top) modal.style.top = savedState.top;
@@ -1037,7 +1036,6 @@ function initCalculatorFeatures() {
         if (savedState.width) modal.style.width = savedState.width;
         if (savedState.height) modal.style.height = savedState.height;
         
-        // Remove default bottom/right anchoring if we have custom coordinates
         if (savedState.top || savedState.left) {
             modal.style.right = 'auto';
             modal.style.bottom = 'auto';
@@ -1055,17 +1053,19 @@ function initCalculatorFeatures() {
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        modal.style.left = modal.offsetLeft + 'px';
-        modal.style.top = modal.offsetTop + 'px';
+        const rect = modal.getBoundingClientRect(); // Perfectly calculates screen position
+        
+        modal.style.left = rect.left + 'px';
+        modal.style.top = rect.top + 'px';
         modal.style.right = 'auto';
         modal.style.bottom = 'auto';
         
-        dragOffset = [modal.offsetLeft - clientX, modal.offsetTop - clientY];
+        dragOffset = [rect.left - clientX, rect.top - clientY];
     }
 
     function doDrag(e) {
         if (!isDragging) return;
-        e.preventDefault(); // Stop mobile screen scrolling
+        e.preventDefault(); 
         
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1077,7 +1077,7 @@ function initCalculatorFeatures() {
     function stopDrag() { 
         if (isDragging) {
             isDragging = false; 
-            saveCalcState(); // Save exact spot when user lets go
+            saveCalcState(); 
         }
     }
 
@@ -1106,10 +1106,11 @@ function initCalculatorFeatures() {
         startX = clientX;
         startY = clientY;
         
-        startWidth = modal.offsetWidth;
-        startHeight = modal.offsetHeight;
-        startLeft = modal.offsetLeft;
-        startTop = modal.offsetTop;
+        const rect = modal.getBoundingClientRect(); // Exact pixel dimensions
+        startWidth = rect.width;
+        startHeight = rect.height;
+        startLeft = rect.left;
+        startTop = rect.top;
         
         modal.style.left = startLeft + 'px';
         modal.style.top = startTop + 'px';
@@ -1133,13 +1134,11 @@ function initCalculatorFeatures() {
         let newLeft = startLeft;
         let newTop = startTop;
 
-        // Determine which edges need to stretch and move based on handle direction
         if (dir.includes('r')) newWidth = startWidth + deltaX;
         if (dir.includes('l')) { newWidth = startWidth - deltaX; newLeft = startLeft + deltaX; }
         if (dir.includes('b')) newHeight = startHeight + deltaY;
         if (dir.includes('t')) { newHeight = startHeight - deltaY; newTop = startTop + deltaY; }
 
-        // Apply size while respecting min-width/min-height limits
         if (newWidth >= 240) {
             modal.style.width = newWidth + 'px';
             if (dir.includes('l')) modal.style.left = newLeft + 'px';
@@ -1154,7 +1153,7 @@ function initCalculatorFeatures() {
         if (isResizing) {
             isResizing = false;
             currentResizer = null;
-            saveCalcState(); // Save exact size and position when user lets go
+            saveCalcState(); 
         }
     }
 
@@ -1169,5 +1168,4 @@ function initCalculatorFeatures() {
     document.addEventListener('touchend', stopResize);
 }
 
-// Initialize when the page loads
 document.addEventListener('DOMContentLoaded', initCalculatorFeatures);
