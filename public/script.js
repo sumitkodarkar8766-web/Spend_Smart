@@ -1009,27 +1009,52 @@ function saveGlobalDailyLimit() {
     }
     loadExpenses(); // Refresh the calendar to apply the borders
 }
-// --- DRAGGABLE & RESIZABLE CALCULATOR LOGIC ---
+
+
+// --- DRAGGABLE, RESIZABLE (ALL SIDES) & SAVABLE CALCULATOR LOGIC ---
 function initCalculatorFeatures() {
     const modal = document.getElementById('calculatorModal');
     const header = document.getElementById('calcHeader');
-    const resizer = document.getElementById('calcResizer');
+    
+    if (!modal || !header) return;
 
-    if (!modal || !header || !resizer) return;
+    // 0. --- Load Saved State ---
+    function saveCalcState() {
+        const state = {
+            top: modal.style.top,
+            left: modal.style.left,
+            width: modal.style.width,
+            height: modal.style.height
+        };
+        localStorage.setItem('calcSavedState', JSON.stringify(state));
+    }
+
+    // Apply saved size and position immediately when opened
+    const savedState = JSON.parse(localStorage.getItem('calcSavedState'));
+    if (savedState) {
+        if (savedState.top) modal.style.top = savedState.top;
+        if (savedState.left) modal.style.left = savedState.left;
+        if (savedState.width) modal.style.width = savedState.width;
+        if (savedState.height) modal.style.height = savedState.height;
+        
+        // Remove default bottom/right anchoring if we have custom coordinates
+        if (savedState.top || savedState.left) {
+            modal.style.right = 'auto';
+            modal.style.bottom = 'auto';
+        }
+    }
 
     // 1. --- Dragging Logic ---
     let isDragging = false;
     let dragOffset = [0, 0];
 
     function startDrag(e) {
-        // Prevent drag if clicking the close button
         if (e.target.tagName.toLowerCase() === 'button' || e.target.tagName.toLowerCase() === 'i') return;
         isDragging = true;
         
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        // CRITICAL: Lock current left/top coordinates before removing bottom/right anchors
         modal.style.left = modal.offsetLeft + 'px';
         modal.style.top = modal.offsetTop + 'px';
         modal.style.right = 'auto';
@@ -1040,7 +1065,7 @@ function initCalculatorFeatures() {
 
     function doDrag(e) {
         if (!isDragging) return;
-        e.preventDefault(); // Stop mobile screen from scrolling
+        e.preventDefault(); // Stop mobile screen scrolling
         
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1049,25 +1074,31 @@ function initCalculatorFeatures() {
         modal.style.top  = (clientY + dragOffset[1]) + 'px';
     }
 
-    function stopDrag() { isDragging = false; }
+    function stopDrag() { 
+        if (isDragging) {
+            isDragging = false; 
+            saveCalcState(); // Save exact spot when user lets go
+        }
+    }
 
-    // Desktop Drag Events
     header.addEventListener('mousedown', startDrag);
     document.addEventListener('mousemove', doDrag, {passive: false});
     document.addEventListener('mouseup', stopDrag);
-
-    // Mobile Drag Events
     header.addEventListener('touchstart', startDrag, {passive: false});
     document.addEventListener('touchmove', doDrag, {passive: false});
     document.addEventListener('touchend', stopDrag);
 
-    // 2. --- Resizing Logic ---
+    // 2. --- Resizing Logic (All 8 Sides) ---
     let isResizing = false;
-    let startX, startY, startWidth, startHeight;
+    let currentResizer = null;
+    let startX, startY, startWidth, startHeight, startLeft, startTop;
+
+    const resizers = modal.querySelectorAll('.calc-resizer');
 
     function startResize(e) {
         isResizing = true;
-        e.preventDefault(); // Crucial to prevent text selection and scroll jumps
+        currentResizer = e.target;
+        if(e.type === 'mousedown') e.preventDefault();
         
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1075,47 +1106,68 @@ function initCalculatorFeatures() {
         startX = clientX;
         startY = clientY;
         
-        // Use offsetWidth/Height instead of computed style for perfect accuracy
         startWidth = modal.offsetWidth;
         startHeight = modal.offsetHeight;
+        startLeft = modal.offsetLeft;
+        startTop = modal.offsetTop;
         
-        // CRITICAL: Lock position so it resizes from the top-left anchor point downward
-        modal.style.left = modal.offsetLeft + 'px';
-        modal.style.top = modal.offsetTop + 'px';
+        modal.style.left = startLeft + 'px';
+        modal.style.top = startTop + 'px';
         modal.style.right = 'auto';
         modal.style.bottom = 'auto';
     }
 
     function doResize(e) {
-        if (!isResizing) return;
-        e.preventDefault(); // Stop mobile screen from scrolling
+        if (!isResizing || !currentResizer) return;
+        e.preventDefault();
         
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        // Calculate new dimensions based on mouse distance traveled
-        const newWidth = startWidth + (clientX - startX);
-        const newHeight = startHeight + (clientY - startY);
-        
-        // Apply dimensions (CSS min-width/min-height constraints in style.css will protect limits)
-        modal.style.width = newWidth + 'px';
-        modal.style.height = newHeight + 'px';
+        const dir = currentResizer.getAttribute('data-dir');
+        const deltaX = clientX - startX;
+        const deltaY = clientY - startY;
+
+        let newWidth = startWidth;
+        let newHeight = startHeight;
+        let newLeft = startLeft;
+        let newTop = startTop;
+
+        // Determine which edges need to stretch and move based on handle direction
+        if (dir.includes('r')) newWidth = startWidth + deltaX;
+        if (dir.includes('l')) { newWidth = startWidth - deltaX; newLeft = startLeft + deltaX; }
+        if (dir.includes('b')) newHeight = startHeight + deltaY;
+        if (dir.includes('t')) { newHeight = startHeight - deltaY; newTop = startTop + deltaY; }
+
+        // Apply size while respecting min-width/min-height limits
+        if (newWidth >= 240) {
+            modal.style.width = newWidth + 'px';
+            if (dir.includes('l')) modal.style.left = newLeft + 'px';
+        }
+        if (newHeight >= 400) {
+            modal.style.height = newHeight + 'px';
+            if (dir.includes('t')) modal.style.top = newTop + 'px';
+        }
     }
 
-    function stopResize() { isResizing = false; }
+    function stopResize() { 
+        if (isResizing) {
+            isResizing = false;
+            currentResizer = null;
+            saveCalcState(); // Save exact size and position when user lets go
+        }
+    }
 
-    // Desktop Resize Events
-    resizer.addEventListener('mousedown', startResize);
+    resizers.forEach(resizer => {
+        resizer.addEventListener('mousedown', startResize);
+        resizer.addEventListener('touchstart', startResize, {passive: false});
+    });
+
     document.addEventListener('mousemove', doResize, {passive: false});
     document.addEventListener('mouseup', stopResize);
-
-    // Mobile Resize Events
-    resizer.addEventListener('touchstart', startResize, {passive: false});
     document.addEventListener('touchmove', doResize, {passive: false});
     document.addEventListener('touchend', stopResize);
 }
 
-// Initialize all features once the page is fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-    initCalculatorFeatures();
-});
+// Initialize when the page loads
+document.addEventListener('DOMContentLoaded', initCalculatorFeatures);

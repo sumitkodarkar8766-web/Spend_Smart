@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spend Smart</title>
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -411,7 +411,16 @@
             <button onclick="calcAppend('.')">.</button>
         </div>
         <!-- Add this new resize handle -->
-        <div id="calcResizer" class="calc-resizer"></div>
+        <!-- Replace your old single calc-resizer with these 8 handles -->
+        <div class="calc-resizer resizer-t" data-dir="t"></div>
+        <div class="calc-resizer resizer-r" data-dir="r"></div>
+        <div class="calc-resizer resizer-b" data-dir="b"></div>
+        <div class="calc-resizer resizer-l" data-dir="l"></div>
+        <div class="calc-resizer resizer-tl" data-dir="tl"></div>
+        <div class="calc-resizer resizer-tr" data-dir="tr"></div>
+        <div class="calc-resizer resizer-bl" data-dir="bl"></div>
+        <div class="calc-resizer resizer-br" data-dir="br"></div>
+
     </div>
 
    <script src="script.js"></script>

@@ -1376,16 +1376,31 @@ canvas {
     flex-direction: column;
 }
 
-/* This is the new custom handle you can grab to resize */
+/* --- 8-Way Resize Handles --- */
 .calc-resizer {
     position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 25px;
-    height: 25px;
-    cursor: se-resize;
     z-index: 10;
-    background: linear-gradient(135deg, transparent 50%, rgba(16, 185, 129, 0.5) 50%);
+}
+
+/* Edge handles */
+.resizer-t { top: -5px; left: 0; width: 100%; height: 12px; cursor: n-resize; }
+.resizer-b { bottom: -5px; left: 0; width: 100%; height: 12px; cursor: s-resize; }
+.resizer-l { top: 0; left: -5px; width: 12px; height: 100%; cursor: w-resize; }
+.resizer-r { top: 0; right: -5px; width: 12px; height: 100%; cursor: e-resize; }
+
+/* Corner handles */
+.resizer-tl { top: -5px; left: -5px; width: 20px; height: 20px; cursor: nw-resize; }
+.resizer-tr { top: -5px; right: -5px; width: 20px; height: 20px; cursor: ne-resize; }
+.resizer-bl { bottom: -5px; left: -5px; width: 20px; height: 20px; cursor: sw-resize; }
+
+/* Bottom-Right handle gets a visual cue */
+.resizer-br { 
+    bottom: 0; 
+    right: 0; 
+    width: 25px; 
+    height: 25px; 
+    cursor: se-resize; 
+    background: linear-gradient(135deg, transparent 50%, rgba(16, 185, 129, 0.5) 50%); 
     border-bottom-right-radius: 20px;
 }
 /* Make the resize handle at the bottom right more visible */
