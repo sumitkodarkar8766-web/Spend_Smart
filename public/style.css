@@ -1388,6 +1388,13 @@ canvas {
     background: linear-gradient(135deg, transparent 50%, rgba(16, 185, 129, 0.5) 50%);
     border-bottom-right-radius: 20px;
 }
+/* Make the resize handle at the bottom right more visible */
+.calc-modal::-webkit-resizer {
+    background-color: var(--accent);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 5px;
+}
 
 .calc-header {
     display: flex;
