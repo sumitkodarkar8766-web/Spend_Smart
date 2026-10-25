@@ -93,6 +93,12 @@
                         <button onclick="updateBudget()" class="save-btn"
                             style="width: auto; padding: 0 20px;">Set</button>
                     </div>
+                    <div class="budget-input-area" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="number" id="globalDailyLimitInput" placeholder="Set Global Daily Limit (₹)"
+                            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334444; background: #0f1717; color: white;">
+                        <button onclick="saveGlobalDailyLimit()" class="save-btn"
+                            style="width: auto; padding: 0 20px; background: #ffdb58; color: #000;">Set Limit</button>
+                    </div>
 
                     <div class="budget-progress-container"
                         style="background: #0f1717; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
@@ -289,8 +295,22 @@
                 <button class="theme-opt img-bg"
                     style="background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=100');"
                     onclick="changeBg('wallpaper', 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1080')"></button>
+                    <button class="theme-opt img-bg"
+                    style="background-image: url('https://static.vecteezy.com/system/resources/thumbnails/070/912/520/small_2x/colorful-hibiscus-flower-with-water-droplets-macrography-for-wallpaper-background-desktop-4k-hd-free-photo.jpg');"
+                    onclick="changeBg('wallpaper', 'https://static.vecteezy.com/system/resources/thumbnails/070/912/520/small_2x/colorful-hibiscus-flower-with-water-droplets-macrography-for-wallpaper-background-desktop-4k-hd-free-photo.jpg')"></button>
             </div>
-
+<!-- Add these inside the theme-modal-content, below the mobile wallpapers -->
+            <label><i class="fas fa-eye-dropper"></i> Custom Palette (Choose your own)</label>
+            <div style="display: flex; gap: 15px; margin-top: 10px;">
+                <div style="flex: 1; text-align: center;">
+                    <p style="font-size: 0.8rem; margin-bottom: 5px;">Text Color</p>
+                    <input type="color" onchange="changeTextColor(this.value)" style="width: 100%; height: 40px; cursor: pointer; border: none; border-radius: 8px; background: none;">
+                </div>
+                <div style="flex: 1; text-align: center;">
+                    <p style="font-size: 0.8rem; margin-bottom: 5px;">Background</p>
+                    <input type="color" onchange="changeBg('color', this.value)" style="width: 100%; height: 40px; cursor: pointer; border: none; border-radius: 8px; background: none;">
+                </div>
+            </div>
             <div class="modal-actions">
                 <button class="save-btn" onclick="closeThemeModal()">Done</button>
             </div>
@@ -350,6 +370,41 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+    <!-- Floating Calculator Button -->
+    <button id="calculatorFab" onclick="toggleCalculator()" class="calculator-fab" title="Open Calculator">
+        <i class="fas fa-calculator"></i>
+    </button>
+
+    <!-- Calculator Modal -->
+    <div id="calculatorModal" class="calc-modal hidden">
+        <div class="calc-header">
+            <h4><i class="fas fa-calculator"></i> Calculator</h4>
+            <button onclick="toggleCalculator()">&times;</button>
+        </div>
+        <div class="calc-display">
+            <input type="text" id="calcInput" readonly placeholder="0">
+        </div>
+        <div class="calc-keys">
+            <button onclick="calcClear()" style="color: #ff5252;">C</button>
+            <button onclick="calcAppend('/')">/</button>
+            <button onclick="calcAppend('*')">*</button>
+            <button onclick="calcBackspace()" style="color: #ffdb58;">&#9003;</button>
+            <button onclick="calcAppend('7')">7</button>
+            <button onclick="calcAppend('8')">8</button>
+            <button onclick="calcAppend('9')">9</button>
+            <button onclick="calcAppend('-')">-</button>
+            <button onclick="calcAppend('4')">4</button>
+            <button onclick="calcAppend('5')">5</button>
+            <button onclick="calcAppend('6')">6</button>
+            <button onclick="calcAppend('+')">+</button>
+            <button onclick="calcAppend('1')">1</button>
+            <button onclick="calcAppend('2')">2</button>
+            <button onclick="calcAppend('3')">3</button>
+            <button onclick="calcCalculate()" class="calc-equal" rowspan="2">=</button>
+            <button onclick="calcAppend('0')" style="grid-column: span 2;">0</button>
+            <button onclick="calcAppend('.')">.</button>
         </div>
     </div>
 

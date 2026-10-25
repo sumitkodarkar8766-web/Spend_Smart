@@ -189,6 +189,13 @@ function renderHomeCalendar(data, selectedMonth) {
         html += `<div class="calendar-day empty"></div>`;
     }
 
+    // Fetch the set global limit from local storage
+    const globalLimit = localStorage.getItem('globalDailyLimit');
+    
+    // Set the input box value if it exists (keeps UI updated)
+    const limitInputEl = document.getElementById('globalDailyLimitInput');
+    if (limitInputEl) limitInputEl.value = globalLimit || "";
+
     for (let d = 1; d <= daysInMonth; d++) {
         const dayDate = new Date(year, month - 1, d);
         const dateStr = `${year}-${month.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
@@ -196,8 +203,23 @@ function renderHomeCalendar(data, selectedMonth) {
         const isToday = dayDate.getTime() === today.getTime();
         const dailyTotal = expenseMap[d] || 0;
 
+        // Determine border class based on daily limit
+        let limitClass = '';
+        if (globalLimit && !isFuture) {
+            const limitVal = parseFloat(globalLimit);
+            // Check if there is actual spending or if you want to include 0 spend days.
+            // We apply it to any day that is today or in the past.
+            if (dailyTotal < limitVal) {
+                limitClass = 'limit-under'; // Green
+            } else if (dailyTotal === limitVal) {
+                limitClass = 'limit-exact'; // Yellow
+            } else if (dailyTotal > limitVal) {
+                limitClass = 'limit-over';  // Red
+            }
+        }
+
         html += `
-            <div class="calendar-day ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}" 
+            <div class="calendar-day ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''} ${limitClass}" 
                  onclick="${isFuture ? '' : `openModal('${dateStr}')`}">
                 <span class="day-number">${d}</span>
                 ${dailyTotal > 0 ? `<span class="day-spend-hint">₹${Math.round(dailyTotal)}</span>` : ''}
@@ -208,7 +230,6 @@ function renderHomeCalendar(data, selectedMonth) {
     document.getElementById('totalAmount').innerText = `₹${data.reduce((acc, curr) => acc + parseFloat(curr.amount), 0)}`;
     applySavedTheme();
 }
-
 // --- ANALYSIS ---
 function renderAnalysis(data, budget) {
     let monthTotal = 0;
@@ -1020,4 +1041,64 @@ if ('serviceWorker' in navigator) {
             window.location.reload(); 
         }
     });
+}
+// --- CALCULATOR LOGIC ---
+function toggleCalculator() {
+    document.getElementById('calculatorModal').classList.toggle('hidden');
+}
+
+function calcAppend(val) {
+    const input = document.getElementById('calcInput');
+    if (input.value === 'Error') input.value = '';
+    input.value += val;
+}
+
+function calcClear() {
+    document.getElementById('calcInput').value = '';
+}
+
+function calcBackspace() {
+    let current = document.getElementById('calcInput').value;
+    if (current === 'Error') { calcClear(); return; }
+    document.getElementById('calcInput').value = current.slice(0, -1);
+}
+
+function calcCalculate() {
+    try {
+        let input = document.getElementById('calcInput').value;
+        // Basic evaluation for the calculator strings
+        let result = new Function('return ' + input)();
+        if (result !== undefined) {
+            // Trim long decimals
+            document.getElementById('calcInput').value = parseFloat(result.toFixed(4));
+        }
+    } catch (e) {
+        document.getElementById('calcInput').value = 'Error';
+        setTimeout(calcClear, 1200);
+    }
+}
+
+// --- SPECIFIC DAILY LIMIT LOGIC ---
+function saveDailyLimit() {
+    let limit = document.getElementById('specificDailyLimit').value;
+    if (limit) {
+        localStorage.setItem(`dailyLimit_${currentSelectedDate}`, limit);
+        Swal.fire("Saved", `Daily limit set to ₹${limit} for this date.`, "success");
+    } else {
+        localStorage.removeItem(`dailyLimit_${currentSelectedDate}`);
+        Swal.fire("Removed", "Daily limit removed for this date.", "info");
+    }
+    openModal(currentSelectedDate); // Refresh the modal to trigger the warning logic if needed
+}
+// --- GLOBAL DAILY LIMIT LOGIC ---
+function saveGlobalDailyLimit() {
+    const limit = document.getElementById('globalDailyLimitInput').value;
+    if (limit) {
+        localStorage.setItem('globalDailyLimit', limit);
+        Swal.fire("Saved", `Global daily limit set to ₹${limit}.`, "success");
+    } else {
+        localStorage.removeItem('globalDailyLimit');
+        Swal.fire("Removed", "Global daily limit removed.", "info");
+    }
+    loadExpenses(); // Refresh the calendar to apply the borders
 }
