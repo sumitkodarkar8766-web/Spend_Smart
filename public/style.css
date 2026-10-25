@@ -1371,19 +1371,22 @@ canvas {
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     z-index: 1000;
     
-    /* The Resize Magic */
-    resize: both;
     overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 
-/* Make the resize handle at the bottom right more visible */
-.calc-modal::-webkit-resizer {
-    background-color: var(--accent);
-    border: 2px solid transparent;
-    background-clip: padding-box;
-    border-radius: 5px;
+/* This is the new custom handle you can grab to resize */
+.calc-resizer {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 25px;
+    height: 25px;
+    cursor: se-resize;
+    z-index: 10;
+    background: linear-gradient(135deg, transparent 50%, rgba(16, 185, 129, 0.5) 50%);
+    border-bottom-right-radius: 20px;
 }
 
 .calc-header {

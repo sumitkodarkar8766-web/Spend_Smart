@@ -1111,7 +1111,9 @@ function makeResizable(modalId, resizerId) {
 
     function startResize(e) {
         isResizing = true;
-        e.preventDefault();
+        
+        // Only prevent default on mouse down, not touch start, so mobile UI doesn't lock up
+        if(e.type === 'mousedown') e.preventDefault();
         
         // Get initial touch/mouse position
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -1158,7 +1160,6 @@ function makeResizable(modalId, resizerId) {
     document.addEventListener('touchmove', doResize, {passive: false});
     document.addEventListener('touchend', stopResize, false);
 }
-
 // Update your initialization block at the bottom of script.js to call both functions
 document.addEventListener('DOMContentLoaded', () => {
     makeDraggable('calculatorModal', 'calcHeader');
