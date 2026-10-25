@@ -923,100 +923,7 @@ function openTrackerDayModal(dateStr) {
     applySavedTheme();
 }
 
-// --- NOTES (DAILY NOTEPAD) ---
-async function loadNotes() {
-    const userId = getUserId();
-    if (!userId) return;
 
-    showLoader();
-    try {
-        const res = await fetch(`${SERVER_URL}/api/notes/${userId}`);
-        const notes = await res.json();
-        const container = document.getElementById('notesContainer');
-        container.innerHTML = "";
-
-        if (notes.length === 0) {
-            container.innerHTML = "<p style='text-align:center; opacity:0.5; margin-top: 20px;'>No notes found.</p>";
-            return;
-        }
-
-        notes.forEach(note => {
-            const displayContent = note.content.replace(/\n/g, '<br>');
-            
-            container.innerHTML += `
-                <div class="section-card" style="border-left: 4px solid #a29bfe; margin-top: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                        <h4 style="margin: 0; color: #a29bfe;"><i class="fas fa-calendar-day"></i> ${note.date}</h4>
-                        <div style="display: flex; gap: 10px;">
-                            <button onclick="editNote('${note.date}', \`${note.content.replace(/`/g, '\\`')}\`)" style="color:#4db6ac; background:none; border:none; cursor:pointer;" title="Edit"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteNote(${note.id})" style="color:#ff5252; background:none; border:none; cursor:pointer;" title="Delete"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                    <p style="font-size: 0.95rem; line-height: 1.5; margin: 0; color: var(--user-text-color, #fff);">${displayContent}</p>
-                </div>
-            `;
-        });
-    } catch (e) {
-        console.error("Error loading notes:", e);
-    } finally {
-        hideLoader();
-        applySavedTheme();
-    }
-}
-
-async function saveNote() {
-    const date = document.getElementById('noteDate').value;
-    const content = document.getElementById('noteContent').value;
-    const userId = getUserId();
-
-    if (!date || !content.trim()) {
-        return Swal.fire("Input Missing", "Please select a date and write a note.", "warning");
-    }
-
-    showLoader();
-    try {
-        const res = await fetch(`${SERVER_URL}/api/notes`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, date: date, content: content.trim() })
-        });
-
-        if (res.ok) {
-            document.getElementById('noteDate').value = "";
-            document.getElementById('noteContent').value = "";
-            await loadNotes();
-        }
-    } catch (e) {
-        console.error(e);
-    } finally {
-        hideLoader();
-    }
-}
-
-function editNote(date, content) {
-    document.getElementById('noteDate').value = date;
-    document.getElementById('noteContent').value = content;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-async function deleteNote(noteId) {
-    Swal.fire({
-        title: 'Delete Note?',
-        text: "This action cannot be undone.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            showLoader();
-            const res = await fetch(`${SERVER_URL}/api/notes/${noteId}`, { method: 'DELETE' });
-            if (res.ok) await loadNotes();
-            hideLoader();
-        }
-    });
-}
 
 // --- INITIALIZATION ---
 monthPicker.addEventListener('change', loadExpenses);
@@ -1102,66 +1009,113 @@ function saveGlobalDailyLimit() {
     }
     loadExpenses(); // Refresh the calendar to apply the borders
 }
-// --- RESIZABLE CALCULATOR LOGIC ---
-function makeResizable(modalId, resizerId) {
-    const modal = document.getElementById(modalId);
-    const resizer = document.getElementById(resizerId);
+// --- DRAGGABLE & RESIZABLE CALCULATOR LOGIC ---
+function initCalculatorFeatures() {
+    const modal = document.getElementById('calculatorModal');
+    const header = document.getElementById('calcHeader');
+    const resizer = document.getElementById('calcResizer');
+
+    if (!modal || !header || !resizer) return;
+
+    // 1. --- Dragging Logic ---
+    let isDragging = false;
+    let dragOffset = [0, 0];
+
+    function startDrag(e) {
+        // Prevent drag if clicking the close button
+        if (e.target.tagName.toLowerCase() === 'button' || e.target.tagName.toLowerCase() === 'i') return;
+        isDragging = true;
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        // CRITICAL: Lock current left/top coordinates before removing bottom/right anchors
+        modal.style.left = modal.offsetLeft + 'px';
+        modal.style.top = modal.offsetTop + 'px';
+        modal.style.right = 'auto';
+        modal.style.bottom = 'auto';
+        
+        dragOffset = [modal.offsetLeft - clientX, modal.offsetTop - clientY];
+    }
+
+    function doDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault(); // Stop mobile screen from scrolling
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        modal.style.left = (clientX + dragOffset[0]) + 'px';
+        modal.style.top  = (clientY + dragOffset[1]) + 'px';
+    }
+
+    function stopDrag() { isDragging = false; }
+
+    // Desktop Drag Events
+    header.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', doDrag, {passive: false});
+    document.addEventListener('mouseup', stopDrag);
+
+    // Mobile Drag Events
+    header.addEventListener('touchstart', startDrag, {passive: false});
+    document.addEventListener('touchmove', doDrag, {passive: false});
+    document.addEventListener('touchend', stopDrag);
+
+    // 2. --- Resizing Logic ---
     let isResizing = false;
     let startX, startY, startWidth, startHeight;
 
     function startResize(e) {
         isResizing = true;
+        e.preventDefault(); // Crucial to prevent text selection and scroll jumps
         
-        // Only prevent default on mouse down, not touch start, so mobile UI doesn't lock up
-        if(e.type === 'mousedown') e.preventDefault();
-        
-        // Get initial touch/mouse position
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
         startX = clientX;
         startY = clientY;
         
-        // Get current computed width/height
-        startWidth = parseInt(document.defaultView.getComputedStyle(modal).width, 10);
-        startHeight = parseInt(document.defaultView.getComputedStyle(modal).height, 10);
+        // Use offsetWidth/Height instead of computed style for perfect accuracy
+        startWidth = modal.offsetWidth;
+        startHeight = modal.offsetHeight;
         
-        // Lock left and top anchors while resizing so it expands down/right
+        // CRITICAL: Lock position so it resizes from the top-left anchor point downward
+        modal.style.left = modal.offsetLeft + 'px';
+        modal.style.top = modal.offsetTop + 'px';
         modal.style.right = 'auto';
         modal.style.bottom = 'auto';
     }
 
     function doResize(e) {
         if (!isResizing) return;
+        e.preventDefault(); // Stop mobile screen from scrolling
         
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        // Calculate new dimensions
+        // Calculate new dimensions based on mouse distance traveled
         const newWidth = startWidth + (clientX - startX);
         const newHeight = startHeight + (clientY - startY);
         
-        // Apply dimensions (CSS min-width/min-height will constrain limits)
+        // Apply dimensions (CSS min-width/min-height constraints in style.css will protect limits)
         modal.style.width = newWidth + 'px';
         modal.style.height = newHeight + 'px';
     }
 
-    function stopResize() {
-        isResizing = false;
-    }
+    function stopResize() { isResizing = false; }
 
-    // Attach mouse events
-    resizer.addEventListener('mousedown', startResize, false);
-    document.addEventListener('mousemove', doResize, false);
-    document.addEventListener('mouseup', stopResize, false);
+    // Desktop Resize Events
+    resizer.addEventListener('mousedown', startResize);
+    document.addEventListener('mousemove', doResize, {passive: false});
+    document.addEventListener('mouseup', stopResize);
 
-    // Attach touch events for mobile
+    // Mobile Resize Events
     resizer.addEventListener('touchstart', startResize, {passive: false});
     document.addEventListener('touchmove', doResize, {passive: false});
-    document.addEventListener('touchend', stopResize, false);
+    document.addEventListener('touchend', stopResize);
 }
-// Update your initialization block at the bottom of script.js to call both functions
+
+// Initialize all features once the page is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-    makeDraggable('calculatorModal', 'calcHeader');
-    makeResizable('calculatorModal', 'calcResizer');
+    initCalculatorFeatures();
 });
