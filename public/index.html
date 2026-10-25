@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spend Smart</title>
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=3">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -377,33 +377,38 @@
         <i class="fas fa-calculator"></i>
     </button>
 
-    <!-- Calculator Modal -->
+   <!-- Calculator Modal -->
     <div id="calculatorModal" class="calc-modal hidden">
-        <div class="calc-header">
-            <h4><i class="fas fa-calculator"></i> Calculator</h4>
-            <button onclick="toggleCalculator()">&times;</button>
+        <!-- The header acts as the drag handle -->
+        <div id="calcHeader" class="calc-header">
+            <h4><i class="fas fa-grip-lines"></i> Calculator</h4>
+            <button onclick="toggleCalculator()" class="close-calc">&times;</button>
         </div>
         <div class="calc-display">
             <input type="text" id="calcInput" readonly placeholder="0">
         </div>
         <div class="calc-keys">
-            <button onclick="calcClear()" style="color: #ff5252;">C</button>
-            <button onclick="calcAppend('/')">/</button>
-            <button onclick="calcAppend('*')">*</button>
-            <button onclick="calcBackspace()" style="color: #ffdb58;">&#9003;</button>
+            <button onclick="calcClear()" style="color: #ff5252; background: rgba(255, 82, 82, 0.1);">C</button>
+            <button onclick="calcAppend('/')" class="op-btn">&divide;</button>
+            <button onclick="calcAppend('*')" class="op-btn">&times;</button>
+            <button onclick="calcBackspace()" style="color: #ffdb58; background: rgba(255, 219, 88, 0.1);"><i class="fas fa-backspace"></i></button>
+            
             <button onclick="calcAppend('7')">7</button>
             <button onclick="calcAppend('8')">8</button>
             <button onclick="calcAppend('9')">9</button>
-            <button onclick="calcAppend('-')">-</button>
+            <button onclick="calcAppend('-')" class="op-btn">&minus;</button>
+            
             <button onclick="calcAppend('4')">4</button>
             <button onclick="calcAppend('5')">5</button>
             <button onclick="calcAppend('6')">6</button>
-            <button onclick="calcAppend('+')">+</button>
+            <button onclick="calcAppend('+')" class="op-btn">&plus;</button>
+            
             <button onclick="calcAppend('1')">1</button>
             <button onclick="calcAppend('2')">2</button>
             <button onclick="calcAppend('3')">3</button>
             <button onclick="calcCalculate()" class="calc-equal" rowspan="2">=</button>
-            <button onclick="calcAppend('0')" style="grid-column: span 2;">0</button>
+            
+            <button onclick="calcAppend('0')" style="grid-column: span 2; border-radius: 12px;">0</button>
             <button onclick="calcAppend('.')">.</button>
         </div>
     </div>

@@ -1102,3 +1102,56 @@ function saveGlobalDailyLimit() {
     }
     loadExpenses(); // Refresh the calendar to apply the borders
 }
+// --- DRAGGABLE CALCULATOR LOGIC ---
+function makeDraggable(modalId, headerId) {
+    const modal = document.getElementById(modalId);
+    const header = document.getElementById(headerId);
+    let isDown = false;
+    let offset = [0, 0];
+
+    // Mouse Events for PC
+    header.addEventListener('mousedown', function(e) {
+        if(e.target.tagName.toLowerCase() === 'button') return; // Don't drag if clicking X
+        isDown = true;
+        offset = [modal.offsetLeft - e.clientX, modal.offsetTop - e.clientY];
+        
+        // Remove bottom/right constraints so left/top can take over
+        modal.style.bottom = 'auto';
+        modal.style.right = 'auto';
+    }, true);
+
+    document.addEventListener('mouseup', () => isDown = false, true);
+
+    document.addEventListener('mousemove', function(e) {
+        if (isDown) {
+            e.preventDefault();
+            modal.style.left = (e.clientX + offset[0]) + 'px';
+            modal.style.top  = (e.clientY + offset[1]) + 'px';
+        }
+    }, true);
+
+    // Touch Events for Mobile
+    header.addEventListener('touchstart', function(e) {
+        if(e.target.tagName.toLowerCase() === 'button') return;
+        isDown = true;
+        offset = [modal.offsetLeft - e.touches[0].clientX, modal.offsetTop - e.touches[0].clientY];
+        
+        modal.style.bottom = 'auto';
+        modal.style.right = 'auto';
+    }, {passive: false});
+
+    document.addEventListener('touchend', () => isDown = false, true);
+
+    document.addEventListener('touchmove', function(e) {
+        if (isDown) {
+            e.preventDefault(); // Stop screen from scrolling while dragging
+            modal.style.left = (e.touches[0].clientX + offset[0]) + 'px';
+            modal.style.top  = (e.touches[0].clientY + offset[1]) + 'px';
+        }
+    }, {passive: false});
+}
+
+// Initialize the drag behavior when the script loads
+document.addEventListener('DOMContentLoaded', () => {
+    makeDraggable('calculatorModal', 'calcHeader');
+});
